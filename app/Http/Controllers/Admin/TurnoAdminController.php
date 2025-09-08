@@ -23,6 +23,12 @@ class TurnoAdminController extends Controller
     // Crear un nuevo turno
     public function store(Request $request)
     {
+        $request->validate([
+            'fecha' => 'required|date|after_or_equal:today',
+            'hora'  => 'required|date_format:H:i',
+            'estado' => 'in:disponible,reservado,cancelada'
+        ]);
+
         $turno = Turno::create($request->all());
         return response()->json($turno, 201);
     }
@@ -30,6 +36,12 @@ class TurnoAdminController extends Controller
     // Actualizar un turno existente
     public function update(Request $request, $id)
     {
+        $request->validate([
+            'fecha' => 'sometimes|date|after_or_equal:today',
+            'hora'  => 'sometimes|date_format:H:i',
+            'estado' => 'sometimes|in:disponible,reservado,cancelada'
+        ]);
+
         $turno = Turno::findOrFail($id);
         $turno->update($request->all());
         return response()->json($turno);

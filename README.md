@@ -39,13 +39,7 @@ Este proyecto provee una **API RESTful** y un **panel administrativo** que permi
 - **API RESTful** – comunicación con frontend React.
 - **Auth0** – (pendiente) autenticación y autorización.
 
----
-
-## 🗂️ Entidades principales
-- **Users** → clientes y administradores del sistema.  
-- **Turnos** → horarios disponibles para alquilar.  
-- **Reservas** → vínculo entre usuarios y turnos reservados.  
-
 
 ## 📬 Contacto
 Desarrollado por Lorenzetti Lucio  
+E-mail: lucioadriell@gmail.com

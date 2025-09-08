@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('turno_id')->constrained()->onDelete('cascade');
-            $table->enum('estado', ['pendiente','pagado'])->default('pendiente');
+            $table->enum('estado', ['pendiente','pagado', 'cancelada'])->default('pendiente');
             $table->string('referencia_pago')->nullable();
             $table->timestamps();
         });

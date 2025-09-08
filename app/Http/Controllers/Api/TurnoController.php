@@ -9,13 +9,14 @@ use Illuminate\Http\Request;
 class TurnoController extends Controller
 {
     // Listar turnos disponibles
-    public function index()
+   public function disponibles()
     {
-        $turnos = Turno::where('estado', 'disponible')
+        // Devuelve solo los turnos que no están reservados
+        $turnosDisponibles = Turno::where('estado', 'disponible')
             ->orderBy('fecha')
             ->orderBy('hora')
             ->get();
 
-        return response()->json($turnos);
+        return response()->json($turnosDisponibles);
     }
 }
