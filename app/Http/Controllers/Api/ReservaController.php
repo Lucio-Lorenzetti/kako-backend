@@ -18,8 +18,8 @@ class ReservaController extends Controller
         }
 
         $reservas = Reserva::with('turno', 'user')
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return response()->json($reservas);
     }
@@ -33,12 +33,10 @@ class ReservaController extends Controller
 
         $turno = Turno::findOrFail($request->turno_id);
 
-        // Chequeo que el turno esté disponible
         if ($turno->estado !== 'disponible') {
             return response()->json(['error' => 'El turno no está disponible'], 400);
         }
 
-        // Evitar que el usuario reserve dos veces el mismo turno
         $existe = Reserva::where('user_id', auth()->id())
             ->where('turno_id', $request->turno_id)
             ->where('estado', '!=', 'cancelada')
@@ -48,26 +46,19 @@ class ReservaController extends Controller
             return response()->json(['error' => 'Ya tenés una reserva para este turno'], 400);
         }
 
-        // No permitir reservar turnos en el pasado
         if ($turno->fecha < now()->toDateString() ||
             ($turno->fecha == now()->toDateString() && $turno->hora < now()->format('H:i:s'))) {
             return response()->json(['error' => 'No se puede reservar un turno en el pasado'], 400);
         }
 
-        $reserva = null;
-
-        // Transacción para mantener consistencia
-        DB::transaction(function () use ($turno, &$reserva) {
-            $reserva = Reserva::create([
-                'user_id' => auth()->id(),
-                'turno_id' => $turno->id,
-            ]);
-
-            $turno->update(['estado' => 'reservado']);
-        });
+        $reserva = Reserva::create([
+            'user_id' => auth()->id(),
+            'turno_id' => $turno->id,
+            'estado' => 'pendiente'
+        ]);
 
         return response()->json([
-            'message' => 'Reserva creada con éxito',
+            'message' => 'Reserva creada, pendiente de pago',
             'reserva' => $reserva
         ], 201);
     }
@@ -97,12 +88,11 @@ class ReservaController extends Controller
             return response()->json(['error' => 'La reserva ya está cancelada'], 400);
         }
 
-        // Transacción: cancelar reserva + liberar turno
         DB::transaction(function () use ($reserva) {
             $reserva->estado = 'cancelada';
             $reserva->save();
 
-            if ($reserva->turno) {
+            if ($reserva->turno && $reserva->estado === 'pendiente') {
                 $reserva->turno->update(['estado' => 'disponible']);
             }
         });
@@ -118,9 +108,9 @@ class ReservaController extends Controller
         }
 
         $reservas = Reserva::where('user_id', auth()->id())
-                    ->with('turno') 
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+            ->with('turno')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return response()->json($reservas);
     }

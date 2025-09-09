@@ -11,7 +11,9 @@ class Reserva extends Model
 
     protected $fillable = [
         'user_id',
-        'turno_id'
+        'turno_id',
+        'estado',
+        'referencia_pago'
     ];
 
     // Una reserva pertenece a un usuario

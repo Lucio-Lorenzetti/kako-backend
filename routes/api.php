@@ -1,22 +1,19 @@
-<?php
-
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\TurnoController;
 use App\Http\Controllers\Api\ReservaController;
 use App\Http\Controllers\Admin\TurnoAdminController;
 use App\Http\Controllers\Admin\ReservaAdminController;
+use App\Http\Controllers\Api\PagoController;
 
 // -----------------------------
 // 🔹 RUTAS PÚBLICAS
 // -----------------------------
 Route::get('/turnos/disponibles', [TurnoController::class, 'disponibles']); 
-
-// Registro y autenticación
 Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register']);
 Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login']);
 
 // -----------------------------
-// 🔹 RUTAS PROTEGIDAS (USUARIOS AUTENTICADOS)
+// 🔹 RUTAS USUARIOS AUTENTICADOS
 // -----------------------------
 Route::middleware('auth:sanctum')->group(function () {
     // Reservas
@@ -25,12 +22,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/reservas/{id}', [ReservaController::class, 'cancelar']); 
     Route::get('/reservas/mias', [ReservaController::class, 'mias']);       
 
+    // Pagos
+    Route::post('/reservas/{id}/pagar', [PagoController::class, 'iniciarPago']); 
+
     // Logout
     Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
 });
 
 // -----------------------------
-// 🔹 RUTAS PROTEGIDAS (ADMIN)
+// 🔹 WEBHOOK MERCADOPAGO
+// -----------------------------
+Route::post('/webhook/mercadopago', [PagoController::class, 'webhook']);
+
+// -----------------------------
+// 🔹 RUTAS ADMIN
 // -----------------------------
 Route::middleware(['auth:sanctum', \App\Http\Middleware\IsAdmin::class])
     ->prefix('admin')

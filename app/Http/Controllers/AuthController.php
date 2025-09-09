@@ -46,7 +46,6 @@ class AuthController extends Controller
         ], 201);
     }
 
-
     // Login
     public function login(Request $request)
     {
@@ -72,9 +71,9 @@ class AuthController extends Controller
     // Logout
     public function logout(Request $request)
     {
-        // Eliminar el token actual
-        $request->user()->currentAccessToken()->delete();
+        // 🔹 Eliminar TODOS los tokens del usuario (logout global)
+        $request->user()->tokens()->delete();
 
-        return response()->json(['message' => 'Logout exitoso']);
+        return response()->json(['message' => 'Logout exitoso, todas las sesiones cerradas']);
     }
 }
