@@ -30,7 +30,11 @@ class TurnoAdminController extends Controller
         ]);
 
         $turno = Turno::create($request->all());
-        return response()->json($turno, 201);
+        
+        return response()->json([
+            'message' => 'Turno creado correctamente',
+            'turno' => $turno
+        ], 201);
     }
 
     // Actualizar un turno existente
@@ -44,7 +48,11 @@ class TurnoAdminController extends Controller
 
         $turno = Turno::findOrFail($id);
         $turno->update($request->all());
-        return response()->json($turno);
+
+        return response()->json([
+            'message' => 'Turno actualizado correctamente',
+            'turno' => $turno
+        ], 200);
     }
 
     // Eliminar un turno
