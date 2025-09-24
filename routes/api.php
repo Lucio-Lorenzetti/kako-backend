@@ -10,7 +10,7 @@ use App\Http\Controllers\Api\PagoController;
 // -----------------------------
 // 🔹 RUTAS PÚBLICAS
 // -----------------------------
-Route::get('/turnos/disponibles', [TurnoController::class, 'disponibles']); 
+Route::get('/turnos', [TurnoController::class, 'show']); 
 Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register']);
 Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login']);
 
@@ -18,6 +18,9 @@ Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login']);
 // 🔹 RUTAS USUARIOS AUTENTICADOS
 // -----------------------------
 Route::middleware('auth:sanctum')->group(function () {
+    // Usuarios
+    Route::get('/me', [\App\Http\Controllers\Api\UserController::class, 'mydata']);
+
     // Reservas
     Route::post('/reservas', [ReservaController::class, 'store']);          
     Route::get('/reservas/{id}', [ReservaController::class, 'show']);       

@@ -26,7 +26,7 @@ class TurnoAdminController extends Controller
         $request->validate([
             'fecha' => 'required|date|after_or_equal:today',
             'hora'  => 'required|date_format:H:i',
-            'estado' => 'in:disponible,reservado,cancelada'
+            'estado' => 'in:disponible,reservado,inactivo'
         ]);
 
         $turno = Turno::create($request->all());
@@ -43,7 +43,7 @@ class TurnoAdminController extends Controller
         $request->validate([
             'fecha' => 'sometimes|date|after_or_equal:today',
             'hora'  => 'sometimes|date_format:H:i',
-            'estado' => 'sometimes|in:disponible,reservado,cancelada'
+            'estado' => 'sometimes|in:disponible,reservado,inactivo'
         ]);
 
         $turno = Turno::findOrFail($id);
