@@ -25,9 +25,9 @@ class UserSeeder extends Seeder
 
         // Crear usuario administrador
         User::create([
-            'name' => 'Admin',
+            'name' => 'Lucio Adriel',
             'email' => 'lucioadriell@gmail.com',
-            'password' => Hash::make('password123'),
+            'password' => Hash::make('123'),
             'role' => 'admin',
         ]);
 
@@ -35,27 +35,53 @@ class UserSeeder extends Seeder
         User::create([
             'name' => 'Usuario 1',
             'email' => 'usuario1@example.com',
-            'password' => Hash::make('password123'),
+            'password' => Hash::make('123'),
             'role' => 'user',
         ]);
 
         User::create([
             'name' => 'Usuario 2',
             'email' => 'usuario2@example.com',
-            'password' => Hash::make('password123'),
+            'password' => Hash::make('123'),
             'role' => 'user',
         ]);
 
         // Si querés, podés agregar más usuarios con un bucle
-        /*
-        for ($i = 3; $i <= 5; $i++) {
-            User::create([
-                'name' => "Usuario $i",
-                'email' => "usuario$i@example.com",
-                'password' => Hash::make('password123'),
-                'role' => 'user',
-            ]);
-        }
-        */
+        User::create([
+            'name' => 'Usuario 3',
+            'email' => 'usuario3@example.com',
+            'password' => Hash::make('123'),
+            'role' => 'user',
+        ]);
+
+        User::create([
+            'name' => 'Usuario 4',
+            'email' => 'usuario4@example.com',
+            'password' => Hash::make('123'),
+            'role' => 'user',
+        ]);
+
+        User::create([
+            'name' => 'Usuario 5',
+            'email' => 'usuario5@example.com',
+            'password' => Hash::make('123'),
+            'role' => 'user',
+        ]);
+
+        User::create([
+            'name' => 'Usuario 6',
+            'email' => 'usuario6@example.com',
+            'password' => Hash::make('123'),
+            'role' => 'user',
+        ]);
+
+        User::create([
+            'name' => 'Usuario 7',
+            'email' => 'usuario7@example.com',
+            'password' => Hash::make('123'),
+            'role' => 'user',
+        ]);
+        
+        
     }
 }

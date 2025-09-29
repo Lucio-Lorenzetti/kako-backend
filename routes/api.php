@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ReservaController;
 use App\Http\Controllers\Admin\TurnoAdminController;
 use App\Http\Controllers\Admin\ReservaAdminController;
 use App\Http\Controllers\Api\PagoController;
+use App\Http\Controllers\Api\UserController;
 
 // -----------------------------
 // 🔹 RUTAS PÚBLICAS
@@ -28,7 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reservas/mias', [ReservaController::class, 'mias']);       
 
     // Pagos
-    Route::post('/reservas/{id}/pagar', [PagoController::class, 'iniciarPago']); 
+    Route::post('/pagos', [PagoController::class, 'crearPago']);
 
     // Logout
     Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
@@ -37,7 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
 // -----------------------------
 // 🔹 WEBHOOK MERCADOPAGO
 // -----------------------------
-Route::post('/webhook/mercadopago', [PagoController::class, 'webhook']);
+Route::post('/pagos/webhook', [PagoController::class, 'webhook']);
 
 // -----------------------------
 // 🔹 RUTAS ADMIN
@@ -58,4 +59,14 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\IsAdmin::class])
         Route::put('reservas/{id}', [ReservaAdminController::class, 'update']);  
         Route::put('reservas/{id}/liberar', [ReservaAdminController::class, 'liberar']); 
         Route::delete('reservas/{id}', [ReservaAdminController::class, 'destroy']); 
+
+        //Pagos
+        Route::post('/pagos', [PagoController::class, 'crearPago']);
+
+        // Usuarios
+        Route::get('usuarios', [UserController::class, 'index']);
+        Route::get('usuarios/{id}', [UserController::class, 'show']);
+        Route::put('usuarios/{id}', [UserController::class, 'update']);
+        Route::delete('usuarios/{id}', [UserController::class, 'destroy']);
+
     });
