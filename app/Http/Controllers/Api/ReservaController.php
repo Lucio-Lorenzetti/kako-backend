@@ -29,12 +29,16 @@ class ReservaController extends Controller
     {
         $request->validate([
             'turno_id' => 'required|exists:turnos,id',
+            'whatsapp' => 'required|string|max:20',
+            'cantidad_jugadores' => 'required|integer|min:1|max:4',
+            'necesita_paleta' => 'required|boolean',
+            'buscar_pareja' => 'required|boolean',
         ]);
 
         $turno = Turno::findOrFail($request->turno_id);
 
         if ($turno->estado !== 'disponible') {
-            return response()->json(['error' => 'El turno no está disponible'], 400);
+            return response()->json(['error' => 'El turno no está disponible o ya fue reservado'], 400);
         }
 
         $existe = Reserva::where('user_id', auth()->id())
@@ -43,7 +47,7 @@ class ReservaController extends Controller
             ->exists();
 
         if ($existe) {
-            return response()->json(['error' => 'Ya tenés una reserva para este turno'], 400);
+            return response()->json(['error' => 'Ya tenés una reserva activa para este turno'], 400);
         }
 
         if ($turno->fecha < now()->toDateString() ||
@@ -51,17 +55,40 @@ class ReservaController extends Controller
             return response()->json(['error' => 'No se puede reservar un turno en el pasado'], 400);
         }
 
-        $reserva = Reserva::create([
-            'user_id' => auth()->id(),
-            'turno_id' => $turno->id,
-            'estado' => 'pendiente'
-        ]);
+        // 🟢 INICIAMOS TRANSACCIÓN PARA GARANTIZAR QUE AMBOS CAMBIOS OCURRAN
+        try {
+            DB::beginTransaction();
 
-        return response()->json([
-            'message' => 'Reserva creada, pendiente de pago',
-            'reserva' => $reserva
-        ], 201);
+            // 1. Crear la reserva
+            $reserva = Reserva::create([
+                'user_id' => auth()->id(),
+                'turno_id' => $turno->id,
+                'nombre_jugador' => auth()->user()->name, // histórico
+                'whatsapp' => $request->whatsapp,
+                'cantidad_jugadores' => $request->cantidad_jugadores,
+                'necesita_paleta' => $request->necesita_paleta,
+                'buscar_pareja' => $request->buscar_pareja,
+                'estado' => 'pendiente'
+            ]);
+
+            // 2. ACTUALIZAR EL ESTADO DEL TURNO A 'reservado'
+            $turno->update(['estado' => 'reservado']);
+
+            DB::commit(); // Confirmamos los cambios
+
+            return response()->json([
+                'message' => 'Reserva creada y turno actualizado, pendiente de pago',
+                'reserva' => $reserva
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack(); // Si algo falla, deshacemos todo
+            // Logear el error para propósitos de debugging
+            \Log::error("Error al crear la reserva y actualizar el turno: " . $e->getMessage());
+            return response()->json(['error' => 'Error interno al procesar la reserva, intentá nuevamente'], 500);
+        }
     }
+
 
     // Ver una reserva específica
     public function show($id)

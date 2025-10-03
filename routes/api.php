@@ -54,9 +54,11 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\IsAdmin::class])
         Route::delete('turnos/{id}', [TurnoAdminController::class, 'destroy']); 
 
         // Reservas
-        Route::get('reservas', [ReservaAdminController::class, 'index']);        
+        Route::get('reservas', [ReservaAdminController::class, 'index']);
+        Route::get('reservas/hoy', [ReservaAdminController::class, 'hoy']);
         Route::get('reservas/{id}', [ReservaAdminController::class, 'show']);    
         Route::put('reservas/{id}', [ReservaAdminController::class, 'update']);  
+        Route::put('/turnos/precio/cancha', [TurnoController::class, 'updatePrecioPorCancha']);
         Route::put('reservas/{id}/liberar', [ReservaAdminController::class, 'liberar']); 
         Route::delete('reservas/{id}', [ReservaAdminController::class, 'destroy']); 
 

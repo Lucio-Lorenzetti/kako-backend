@@ -9,15 +9,30 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up()
+    public function up(): void
     {
         Schema::create('reservas', function (Blueprint $table) {
             $table->id();
+
+            // Relaciones
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('turno_id')->constrained()->onDelete('cascade');
-            $table->enum('estado', ['pendiente','pagado', 'cancelada'])->default('pendiente');
+
+            // Datos del jugador
+            $table->string('nombre_jugador'); // histórico, viene de users.name
+            $table->string('whatsapp');
+
+            // Datos de la reserva
+            $table->unsignedTinyInteger('cantidad_jugadores')->default(1);
+            $table->boolean('necesita_paleta')->default(false);
+            $table->boolean('buscar_pareja')->default(false);
+
+            // Estado y pago
+            $table->enum('estado', ['pendiente','pagado','cancelada'])->default('pendiente');
             $table->string('referencia_pago')->nullable();
+
             $table->timestamps();
+
         });
     }
 

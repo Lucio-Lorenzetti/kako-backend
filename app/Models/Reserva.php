@@ -12,6 +12,11 @@ class Reserva extends Model
     protected $fillable = [
         'user_id',
         'turno_id',
+        'nombre_jugador',
+        'whatsapp',
+        'cantidad_jugadores',
+        'necesita_paleta',
+        'buscar_pareja',
         'estado',
         'referencia_pago'
     ];
