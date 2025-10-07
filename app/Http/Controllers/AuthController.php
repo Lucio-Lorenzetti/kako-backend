@@ -18,26 +18,30 @@ class AuthController extends Controller
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6|confirmed', // Usar password_confirmation
+            'password' => 'required|string|min:8|confirmed', // requiere password_confirmation
         ];
 
         // Solo validar el role si lo está poniendo un admin
         if ($isAdmin) {
             $rules['role'] = 'required|in:user,admin';
+            $rules['estado'] = 'required|in:Activo,Inactivo';
         }
 
         $request->validate($rules);
 
-        // Asignar rol
+        // Asignar rol y estado
         $role = $isAdmin ? $request->role : 'user';
+        $estado = $isAdmin ? $request->estado : 'Activo';
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $role,
+            'estado' => $estado,
         ]);
 
+        // Crear token para login
         $token = $user->createToken('token-login')->plainTextToken;
 
         return response()->json([

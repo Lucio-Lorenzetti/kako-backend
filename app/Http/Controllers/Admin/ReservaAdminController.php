@@ -10,17 +10,17 @@ use Illuminate\Support\Facades\DB;
 class ReservaAdminController extends Controller
 {
     // Listar todas las reservas
-    public function index()
+      public function index()
     {
-        $hoy = now()->startOfDay(); // inicio del día actual
-        $fin = now()->addDays(6)->endOfDay(); // fin del sexto día
-    
+        $hoy = now()->startOfDay();
+        $fin = now()->addDays(6)->endOfDay();
+
         $reservas = Reserva::with('user', 'turno')
             ->whereHas('turno', function ($q) use ($hoy, $fin) {
                 $q->whereDate('fecha', '>=', $hoy)
                   ->whereDate('fecha', '<=', $fin);
             })
-            ->orderBy('created_at', 'asc') // para que salgan en orden cronológico
+            ->orderBy('created_at', 'asc')
             ->get()
             ->map(function ($reserva) {
                 return [
@@ -29,16 +29,16 @@ class ReservaAdminController extends Controller
                     'nombre_jugador' => $reserva->nombre_jugador,
                     'whatsapp' => $reserva->whatsapp,
                     'cantidad_jugadores' => $reserva->cantidad_jugadores,
-                    'necesita_paleta' => $reserva->necesita_paleta,
-                    'buscar_pareja' => $reserva->buscar_pareja,
+                    'necesita_paleta' => (bool)$reserva->necesita_paleta,
+                    'buscar_pareja' => (bool)$reserva->buscar_pareja,
                     'fecha' => $reserva->turno?->fecha,
                     'hora' => $reserva->turno?->hora,
                     'cancha' => $reserva->turno?->cancha,
-                    'usuario' => [
-                        'id' => $reserva->user?->id,
-                        'nombre' => $reserva->user?->name,
-                        'celular' => $reserva->user?->celular,
-                    ]
+                    'usuario' => $reserva->user ? [
+                        'id' => $reserva->user->id,
+                        'nombre' => $reserva->user->name,
+                        'whatsapp' => $reserva->user->whatsapp ?? null,
+                    ] : null
                 ];
             });
 
@@ -47,16 +47,17 @@ class ReservaAdminController extends Controller
 
     public function hoy()
     {
-        $hoy = now()->startOfDay();
+        $hoy = now()->toDateString();
 
         $reservasHoy = Reserva::with(['user', 'turno'])
             ->whereHas('turno', fn($q) => $q->whereDate('fecha', $hoy))
             ->get()
-            ->sortBy(fn($r) => $r->turno->hora)
+            ->sortBy(fn($r) => $r->turno->hora ?? '')
             ->values();
 
         return response()->json($reservasHoy);
     }
+    
     // Ver detalle de una reserva específica
     public function show($id)
     {

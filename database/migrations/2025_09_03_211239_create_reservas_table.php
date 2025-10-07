@@ -28,7 +28,6 @@ return new class extends Migration
             $table->boolean('buscar_pareja')->default(false);
 
             // Estado y pago
-            $table->enum('estado', ['pendiente','pagado','cancelada'])->default('pendiente');
             $table->string('referencia_pago')->nullable();
 
             $table->timestamps();

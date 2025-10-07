@@ -115,17 +115,29 @@ class ReservaController extends Controller
             return response()->json(['error' => 'La reserva ya está cancelada'], 400);
         }
 
-        DB::transaction(function () use ($reserva) {
+        try {
+            DB::beginTransaction();
+
+            // Guardar turno antes de cambiar estado
+            $turno = $reserva->turno;
+
             $reserva->estado = 'cancelada';
             $reserva->save();
 
-            if ($reserva->turno && $reserva->estado === 'pendiente') {
-                $reserva->turno->update(['estado' => 'disponible']);
+            // Si había un turno asociado, dejarlo disponible
+            if ($turno) {
+                $turno->update(['estado' => 'disponible']);
             }
-        });
 
-        return response()->json(['message' => 'Reserva cancelada correctamente'], 200);
+            DB::commit();
+            return response()->json(['message' => 'Reserva cancelada correctamente'], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error cancelando reserva: '.$e->getMessage());
+            return response()->json(['error' => 'Error interno'], 500);
+        }
     }
+
 
     // Listar reservas del usuario autenticado
     public function mias()

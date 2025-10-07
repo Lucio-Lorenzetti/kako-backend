@@ -19,6 +19,17 @@ class User extends Authenticatable
         'estado', // 'Activo' o 'Inactivo'
     ];
 
+    protected $hidden = ['password', 'remember_token'];
+
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
+
+    // Mutator para hashear password automáticamente
+    public function setPasswordAttribute($value)
+    {
+        $this->attributes['password'] = \Illuminate\Support\Facades\Hash::make($value);
+    }
     // Un usuario puede tener muchas reservas
     public function reservas()
     {

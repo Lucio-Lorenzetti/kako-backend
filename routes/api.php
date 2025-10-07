@@ -9,14 +9,14 @@ use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\UserController;
 
 // -----------------------------
-// 🔹 RUTAS PÚBLICAS
+// RUTAS PÚBLICAS
 // -----------------------------
 Route::get('/turnos', [TurnoController::class, 'show']); 
 Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register']);
 Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login']);
 
 // -----------------------------
-// 🔹 RUTAS USUARIOS AUTENTICADOS
+// RUTAS USUARIOS AUTENTICADOS
 // -----------------------------
 Route::middleware('auth:sanctum')->group(function () {
     // Usuarios
@@ -36,31 +36,30 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // -----------------------------
-// 🔹 WEBHOOK MERCADOPAGO
+// WEBHOOK MERCADOPAGO
 // -----------------------------
 Route::post('/pagos/webhook', [PagoController::class, 'webhook']);
 
 // -----------------------------
-// 🔹 RUTAS ADMIN
+// RUTAS ADMIN
 // -----------------------------
 Route::middleware(['auth:sanctum', \App\Http\Middleware\IsAdmin::class])
     ->prefix('admin')
     ->group(function () {
         // Turnos
-        Route::get('turnos', [TurnoAdminController::class, 'index']);        
-        Route::get('turnos/{id}', [TurnoAdminController::class, 'show']);    
+        Route::get('turnos', [TurnoAdminController::class, 'index']);     
         Route::post('turnos', [TurnoAdminController::class, 'store']);       
         Route::put('turnos/{id}', [TurnoAdminController::class, 'update']);  
-        Route::delete('turnos/{id}', [TurnoAdminController::class, 'destroy']); 
 
         // Reservas
         Route::get('reservas', [ReservaAdminController::class, 'index']);
         Route::get('reservas/hoy', [ReservaAdminController::class, 'hoy']);
         Route::get('reservas/{id}', [ReservaAdminController::class, 'show']);    
         Route::put('reservas/{id}', [ReservaAdminController::class, 'update']);  
-        Route::put('/turnos/precio/cancha', [TurnoController::class, 'updatePrecioPorCancha']);
+        Route::get('precios', [TurnoAdminController::class, 'precios']);
+        Route::put('/turnos/precio/{cancha}', [TurnoAdminController::class, 'updatePrecioPorCancha']);
         Route::put('reservas/{id}/liberar', [ReservaAdminController::class, 'liberar']); 
-        Route::delete('reservas/{id}', [ReservaAdminController::class, 'destroy']); 
+
 
         //Pagos
         Route::post('/pagos', [PagoController::class, 'crearPago']);
@@ -70,5 +69,12 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\IsAdmin::class])
         Route::get('usuarios/{id}', [UserController::class, 'show']);
         Route::put('usuarios/{id}', [UserController::class, 'update']);
         Route::delete('usuarios/{id}', [UserController::class, 'destroy']);
+
+        //Rutas innecesarias temporalmente
+        /*
+        Route::get('turnos/{id}', [TurnoAdminController::class, 'show']);
+        Route::delete('turnos/{id}', [TurnoAdminController::class, 'destroy']); 
+        Route::delete('reservas/{id}', [ReservaAdminController::class, 'destroy']); 
+        */
 
     });
