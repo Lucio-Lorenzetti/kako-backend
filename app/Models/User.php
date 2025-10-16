@@ -26,10 +26,10 @@ class User extends Authenticatable
     ];
 
     // Mutator para hashear password automáticamente
-    public function setPasswordAttribute($value)
+    /*public function setPasswordAttribute($value)
     {
         $this->attributes['password'] = \Illuminate\Support\Facades\Hash::make($value);
-    }
+    }*/
     // Un usuario puede tener muchas reservas
     public function reservas()
     {

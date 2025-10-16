@@ -55,39 +55,42 @@ class ReservaController extends Controller
             return response()->json(['error' => 'No se puede reservar un turno en el pasado'], 400);
         }
 
-        // 🟢 INICIAMOS TRANSACCIÓN PARA GARANTIZAR QUE AMBOS CAMBIOS OCURRAN
         try {
             DB::beginTransaction();
 
-            // 1. Crear la reserva
+            // 💰 Calcular el precio total
+            $precioTotal = $turno->precio_por_persona * $request->cantidad_jugadores;
+
+            // Crear la reserva
             $reserva = Reserva::create([
                 'user_id' => auth()->id(),
                 'turno_id' => $turno->id,
-                'nombre_jugador' => auth()->user()->name, // histórico
+                'nombre_jugador' => auth()->user()->name,
                 'whatsapp' => $request->whatsapp,
                 'cantidad_jugadores' => $request->cantidad_jugadores,
                 'necesita_paleta' => $request->necesita_paleta,
                 'buscar_pareja' => $request->buscar_pareja,
+                'precio_total' => $precioTotal, // 👈 agregado
                 'estado' => 'pendiente'
             ]);
 
-            // 2. ACTUALIZAR EL ESTADO DEL TURNO A 'reservado'
+            // Cambiar estado del turno
             $turno->update(['estado' => 'reservado']);
 
-            DB::commit(); // Confirmamos los cambios
+            DB::commit();
 
             return response()->json([
-                'message' => 'Reserva creada y turno actualizado, pendiente de pago',
+                'message' => 'Reserva creada con éxito',
                 'reserva' => $reserva
             ], 201);
 
         } catch (\Exception $e) {
-            DB::rollBack(); // Si algo falla, deshacemos todo
-            // Logear el error para propósitos de debugging
-            \Log::error("Error al crear la reserva y actualizar el turno: " . $e->getMessage());
-            return response()->json(['error' => 'Error interno al procesar la reserva, intentá nuevamente'], 500);
+            DB::rollBack();
+            \Log::error("Error al crear la reserva: " . $e->getMessage());
+            return response()->json(['error' => 'Error interno al procesar la reserva'], 500);
         }
     }
+
 
 
     // Ver una reserva específica

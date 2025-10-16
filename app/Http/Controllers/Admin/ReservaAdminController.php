@@ -34,6 +34,7 @@ class ReservaAdminController extends Controller
                     'fecha' => $reserva->turno?->fecha,
                     'hora' => $reserva->turno?->hora,
                     'cancha' => $reserva->turno?->cancha,
+                    'precio_total' => $reserva->precio_total,
                     'usuario' => $reserva->user ? [
                         'id' => $reserva->user->id,
                         'nombre' => $reserva->user->name,

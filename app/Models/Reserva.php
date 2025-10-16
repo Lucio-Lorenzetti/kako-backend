@@ -18,7 +18,8 @@ class Reserva extends Model
         'necesita_paleta',
         'buscar_pareja',
         'estado',
-        'referencia_pago'
+        'referencia_pago',
+        'precio_total'
     ];
 
     // Una reserva pertenece a un usuario

@@ -28,6 +28,7 @@ return new class extends Migration
             $table->boolean('buscar_pareja')->default(false);
 
             // Estado y pago
+            $table->decimal('precio_total', 8, 2)->nullable();
             $table->string('referencia_pago')->nullable();
 
             $table->timestamps();
