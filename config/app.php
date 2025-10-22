@@ -52,7 +52,7 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'http://127.0.0.1'),
+    'url' => env('APP_URL', 'https://applaudable-reinaldo-unvainly.ngrok-free.dev'),
     'frontend_url' => env('FRONTEND_URL', 'http://127.0.0.1:5173'),
 
     /*

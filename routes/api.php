@@ -14,9 +14,7 @@ use App\Http\Controllers\Api\MercadoPagoController;
 Route::get('/turnos', [TurnoController::class, 'show']); 
 Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register']);
 Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login']);
-// WEBHOOK MERCADOPAGO (DEBE SER PÚBLICA)
 Route::post('/mercadopago/webhook', [MercadoPagoController::class, 'handleWebhook']);
-// TEMP: public debug endpoint to test preference creation without auth (remove after debugging)
 Route::post('/mercadopago/preference-debug', [MercadoPagoController::class, 'crearPreferencia']);
 
 // -----------------------------
@@ -25,13 +23,11 @@ Route::post('/mercadopago/preference-debug', [MercadoPagoController::class, 'cre
 Route::middleware('auth:sanctum')->group(function () {
     // Usuarios
     Route::get('/me', [\App\Http\Controllers\Api\UserController::class, 'mydata']);
-
     // Reservas
     Route::post('/reservas', [ReservaController::class, 'store']);          
     Route::get('/reservas/{id}', [ReservaController::class, 'show']);       
     Route::delete('/reservas/{id}', [ReservaController::class, 'cancelar']); 
-    Route::get('/reservas/mias', [ReservaController::class, 'mias']);       
-    
+    Route::get('/reservas/mias', [ReservaController::class, 'mias']);    
     //Pagos
     Route::post('/mercadopago/preference', [MercadoPagoController::class, 'crearPreferencia']);
     // Logout
@@ -48,7 +44,6 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\IsAdmin::class])
         Route::get('turnos', [TurnoAdminController::class, 'index']);     
         Route::post('turnos', [TurnoAdminController::class, 'store']);       
         Route::put('turnos/{id}', [TurnoAdminController::class, 'update']);  
-
         // Reservas
         Route::get('reservas', [ReservaAdminController::class, 'index']);
         Route::get('reservas/hoy', [ReservaAdminController::class, 'hoy']);
@@ -56,9 +51,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\IsAdmin::class])
         Route::put('reservas/{id}', [ReservaAdminController::class, 'update']);  
         Route::get('precios', [TurnoAdminController::class, 'precios']);
         Route::put('/turnos/precio/{cancha}', [TurnoAdminController::class, 'updatePrecioPorCancha']);
-        Route::put('reservas/{id}/liberar', [ReservaAdminController::class, 'liberar']); 
-
-        
+        Route::put('reservas/{id}/liberar', [ReservaAdminController::class, 'liberar']);         
         // Usuarios
         Route::get('usuarios', [UserController::class, 'index']);
         Route::get('usuarios/{id}', [UserController::class, 'show']);
