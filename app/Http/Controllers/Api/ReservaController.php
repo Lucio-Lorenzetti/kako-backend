@@ -156,4 +156,25 @@ class ReservaController extends Controller
 
         return response()->json($reservas);
     }
+
+    public function ultimaReservaUsuario(Request $request)
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return response()->json(['error' => 'No autenticado'], 401);
+        }
+
+        $reserva = Reserva::with('turno')
+            ->where('user_id', $user->id)
+            ->latest()
+            ->first();
+
+        if (!$reserva) {
+            return response()->json(['error' => 'No hay reservas'], 404);
+        }
+
+        return response()->json($reserva);
+    }
+
 }

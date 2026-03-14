@@ -23,6 +23,7 @@ Route::post('/mercadopago/preference-debug', [MercadoPagoController::class, 'cre
 Route::middleware('auth:sanctum')->group(function () {
     // Usuarios
     Route::get('/me', [\App\Http\Controllers\Api\UserController::class, 'mydata']);
+    Route::middleware('auth:sanctum')->get('/mis-reservas/ultima', [ReservaController::class, 'ultimaReservaUsuario']);
     // Reservas
     Route::post('/reservas', [ReservaController::class, 'store']);          
     Route::get('/reservas/{id}', [ReservaController::class, 'show']);       
