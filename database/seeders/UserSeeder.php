@@ -14,20 +14,34 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Desactivar temporalmente las restricciones de claves foráneas
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        // 1. DESACTIVAR restricciones en PostgreSQL
+        DB::statement('SET session_replication_role = "replica";');
 
-        // Borrar todos los usuarios existentes
+        // 2. Limpiar la tabla
         User::truncate();
 
-        // Reactivar las restricciones de claves foráneas
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        // 3. REACTIVAR restricciones en PostgreSQL
+        DB::statement('SET session_replication_role = "origin";');
 
         // Crear usuario administrador
         User::create([
+            'name' => 'Nazarena Carlino',
+            'email' => 'nazacarlino.nc@gmail.com',
+            'password' => Hash::make('admin1'),
+            'role' => 'admin',
+        ]);
+
+        User::create([
+            'name' => 'Kako',
+            'email' => 'kakocarlino1@gmail.com',
+            'password' => Hash::make('admin2'),
+            'role' => 'admin',
+        ]);
+
+        User::create([
             'name' => 'Lucio Adriel',
             'email' => 'lucioadriell@gmail.com',
-            'password' => Hash::make('1234567890'),
+            'password' => Hash::make('admin3'),
             'role' => 'admin',
         ]);
 
@@ -53,35 +67,7 @@ class UserSeeder extends Seeder
             'password' => Hash::make('123'),
             'role' => 'user',
         ]);
-
-        User::create([
-            'name' => 'Usuario 4',
-            'email' => 'usuario4@example.com',
-            'password' => Hash::make('123'),
-            'role' => 'user',
-        ]);
-
-        User::create([
-            'name' => 'Usuario 5',
-            'email' => 'usuario5@example.com',
-            'password' => Hash::make('123'),
-            'role' => 'user',
-        ]);
-
-        User::create([
-            'name' => 'Usuario 6',
-            'email' => 'usuario6@example.com',
-            'password' => Hash::make('123'),
-            'role' => 'user',
-        ]);
-
-        User::create([
-            'name' => 'Usuario 7',
-            'email' => 'usuario7@example.com',
-            'password' => Hash::make('123'),
-            'role' => 'user',
-        ]);
-        
+                
         
     }
 }
