@@ -54,11 +54,11 @@ class MercadoPagoController extends Controller
                     ]
                 ],
                 'back_urls' => [
-                    'success' => 'https://applaudable-reinaldo-unvainly.ngrok-free.dev/pago/success',
-                    'failure' => $frontendUrl.'/failure',
-                    'pending' => $frontendUrl.'/pending',
+                    'success' => 'https://kakopadel.vercel.app/pago/success',
+                    'failure' => 'https://kakopadel.vercel.app/failure',
+                    'pending' => 'https://kakopadel.vercel.app/pending',
                 ],
-                'notification_url' => 'https://applaudable-reinaldo-unvainly.ngrok-free.dev/api/mercadopago/webhook',
+                'notification_url' => 'https://kako-backend.onrender.com/api/mercadopago/webhook',
 
                 'external_reference' => json_encode([
                     'turno_id' => $request->turno_id,
