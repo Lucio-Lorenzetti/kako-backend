@@ -12,18 +12,17 @@ class Turno extends Model
     protected $fillable = [
         'fecha',
         'hora',
-        'estado', // disponible, reservado, inactivo
+        'estado', 
         'precio',
-        'cancha' // si manejas más de una cancha
+        'sena',   // <--- AGREGAR ESTO
+        'cancha' 
     ];
 
-    // Un turno puede tener muchas reservas (en este caso 0 o 1)
     public function reservas()
     {
         return $this->hasMany(Reserva::class);
     }
 
-    // Opcional: acceder al usuario que reservó
     public function usuarios()
     {
         return $this->hasManyThrough(User::class, Reserva::class, 'turno_id', 'id', 'id', 'user_id');

@@ -57,12 +57,15 @@ class TurnoAdminController extends Controller
 
     public function precios()
     {
-        $precioInterior = Turno::where('cancha', 'Interior')->value('precio') ?? 0;
-        $precioExterior = Turno::where('cancha', 'Exterior')->value('precio') ?? 0;
+        // Obtenemos el primer registro de cada cancha para sacar el precio y la seña
+        $interior = Turno::where('cancha', 'Interior')->first();
+        $exterior = Turno::where('cancha', 'Exterior')->first();
 
         return response()->json([
-            'interior' => $precioInterior,
-            'exterior' => $precioExterior
+            'interior' => $interior->precio ?? 0,
+            'sena_interior' => $interior->sena ?? 0, // Nuevo campo
+            'exterior' => $exterior->precio ?? 0,
+            'sena_exterior' => $exterior->sena ?? 0  // Nuevo campo
         ]);
     }
 
@@ -70,22 +73,32 @@ class TurnoAdminController extends Controller
     //Actualizar Precio
     public function updatePrecioPorCancha(Request $request, $cancha)
     {
+        // Validamos que lleguen ambos, que sean números y min 0
         $request->validate([
             'precio' => 'required|numeric|min:0',
+            'sena'   => 'required|numeric|min:0',
         ]);
+
+        // CONTROL LÓGICO: Seña no puede ser mayor al precio
+        if ($request->sena > $request->precio) {
+            return response()->json([
+                'error' => 'La seña no puede ser superior al precio total.'
+            ], 422); // Error de validación
+        }
 
         // Validar que la cancha sea válida
         if (!in_array($cancha, ['Interior', 'Exterior'])) {
             return response()->json(['error' => 'Cancha inválida'], 422);
         }
 
-        // Actualiza todos los turnos de esa cancha
+        // Actualiza todos los turnos de esa cancha (Precio y Seña)
         Turno::where('cancha', $cancha)->update([
             'precio' => $request->precio,
+            'sena'   => $request->sena, // Guardamos la seña en la BD
         ]);
 
         return response()->json([
-            'message' => "Precio actualizado correctamente para todos los turnos de la cancha {$cancha}",
+            'message' => "Configuración actualizada para todos los turnos de la cancha {$cancha}",
         ], 200);
     }
 

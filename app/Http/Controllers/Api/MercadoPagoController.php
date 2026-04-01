@@ -50,7 +50,7 @@ class MercadoPagoController extends Controller
                     [
                         'title' => $request->descripcion,
                         'quantity' => 1,
-                        'unit_price' => (float) $request->monto,
+                        'unit_price' => (float) $request->sena,
                     ]
                 ],
                 'back_urls' => [
@@ -58,6 +58,7 @@ class MercadoPagoController extends Controller
                     'failure' => 'https://kakopadel.vercel.app/failure',
                     'pending' => 'https://kakopadel.vercel.app/pending',
                 ],
+                
                 'notification_url' => 'https://kako-backend.onrender.com/api/mercadopago/webhook',
 
                 'external_reference' => json_encode([
