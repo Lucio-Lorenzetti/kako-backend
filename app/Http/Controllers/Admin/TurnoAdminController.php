@@ -57,15 +57,15 @@ class TurnoAdminController extends Controller
 
     public function precios()
     {
-        // Obtenemos el primer registro de cada cancha para sacar el precio y la seña
         $interior = Turno::where('cancha', 'Interior')->first();
         $exterior = Turno::where('cancha', 'Exterior')->first();
 
         return response()->json([
-            'interior' => $interior->precio ?? 0,
-            'sena_interior' => $interior->sena ?? 0, // Nuevo campo
-            'exterior' => $exterior->precio ?? 0,
-            'sena_exterior' => $exterior->sena ?? 0  // Nuevo campo
+            // Si no existe el registro, devolvemos 0 en lugar de romper
+            'interior'      => $interior ? $interior->precio : 0,
+            'sena_interior' => $interior ? $interior->sena : 0,
+            'exterior'      => $exterior ? $exterior->precio : 0,
+            'sena_exterior' => $exterior ? $exterior->sena : 0,
         ]);
     }
 
