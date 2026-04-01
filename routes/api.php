@@ -12,10 +12,12 @@ use App\Http\Controllers\Api\MercadoPagoController;
 // RUTAS PÚBLICAS
 // -----------------------------
 Route::get('/turnos', [TurnoController::class, 'show']); 
+Route::get('/precios-publicos', [TurnoController::class, 'getPrecios']);
 Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register']);
 Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login']);
 Route::post('/mercadopago/webhook', [MercadoPagoController::class, 'handleWebhook']);
 Route::post('/mercadopago/preference-debug', [MercadoPagoController::class, 'crearPreferencia']);
+
 
 // -----------------------------
 // RUTAS USUARIOS AUTENTICADOS

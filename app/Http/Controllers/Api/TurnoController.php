@@ -4,28 +4,29 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Turno;
-// Importa el modelo donde guardas los precios, por ejemplo:
 use App\Models\Precio; 
 use Illuminate\Http\Request;
 
 class TurnoController extends Controller
 {
+    // Método para los turnos
     public function show()
     {
-        $turnos = Turno::orderBy('fecha')
+        return Turno::orderBy('fecha')
             ->orderBy('hora')
             ->get();
+    }
 
-        $precios = Precio::first(); 
+    public function getPrecios()
+    {
+        $interior = \App\Models\Turno::where('cancha', 'Interior')->latest()->first();
+        $exterior = \App\Models\Turno::where('cancha', 'Exterior')->latest()->first();
 
         return response()->json([
-            'turnos' => $turnos,
-            'precios' => [
-                'interior' => $precios->interior ?? 0,
-                'sena_interior' => $precios->sena_interior ?? 0,
-                'exterior' => $precios->exterior ?? 0,
-                'sena_exterior' => $precios->sena_exterior ?? 0,
-            ]
+            'interior' => $interior ? $interior->precio : 0,
+            'sena_interior' => $interior ? $interior->sena : 0,
+            'exterior' => $exterior ? $exterior->precio : 0,
+            'sena_exterior' => $exterior ? $exterior->sena : 0,
         ]);
     }
 }
