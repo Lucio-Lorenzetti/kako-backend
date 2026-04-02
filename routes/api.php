@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Api\TurnoController;
 use App\Http\Controllers\Api\ReservaController;
 use App\Http\Controllers\Admin\TurnoAdminController;
