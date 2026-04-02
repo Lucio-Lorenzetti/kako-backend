@@ -8,6 +8,7 @@ use MercadoPago\MercadoPagoConfig;
 use MercadoPago\Client\Preference\PreferenceClient;
 use MercadoPago\Client\Payment\PaymentClient;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use App\Models\Reserva;
 use App\Models\Turno;
 
@@ -76,10 +77,14 @@ class MercadoPagoController extends Controller
             return response()->json(['id' => $preference->id], 200);
 
         } catch (\Throwable $e) {
-            Log::error('Error MP:', ['msg' => $e->getMessage()]);
+            Log::error('Error en MercadoPago Controller:', [
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine()
+            ]);
+
             return response()->json([
                 'error' => 'Error al conectar con Mercado Pago',
-                'details' => $e->getMessage()
+                'debug_message' => $e->getMessage(), // <--- Esto te dirá el error real en la consola de Chrome
             ], 500);
         }
     }
