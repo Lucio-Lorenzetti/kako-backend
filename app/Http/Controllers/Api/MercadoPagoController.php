@@ -17,31 +17,30 @@ class MercadoPagoController extends Controller
     {
         try {
             $token = env('MP_ACCESS_TOKEN');
-            if (!$token) return response()->json(['error' => 'Token no configurado'], 500);
+            if (!$token) return response()->json(['error' => 'Config Error'], 500);
 
             MercadoPagoConfig::setAccessToken($token);
             $client = new PreferenceClient();
 
             $user = auth('api')->user() ?? auth()->user();
 
-            // 1. Preparamos la data que necesitamos recuperar en el Webhook
+            // Datos limpios para evitar errores de parseo en MP
             $externalData = [
-                'turno_id' => $request->turno_id,
-                'user_id' => $user ? $user->id : null,
-                'whatsapp' => $request->whatsapp,
-                'cantidad_jugadores' => $request->cantidad_jugadores,
-                'necesita_paleta' => $request->necesita_paleta,
-                'buscar_pareja' => $request->buscar_pareja,
-                'nombre_jugador' => $user ? $user->name : 'Invitado'
+                'turno_id'           => (int) $request->turno_id,
+                'user_id'            => $user ? $user->id : null,
+                'whatsapp'           => (string) $request->whatsapp,
+                'cantidad_jugadores' => (int) $request->cantidad_jugadores,
+                'necesita_paleta'    => (bool) $request->necesita_paleta,
+                'buscar_pareja'      => (bool) $request->buscar_pareja,
+                'nombre_jugador'     => $user ? (string) $user->name : 'Invitado'
             ];
 
-            // 2. Creamos la preferencia
             $preference = $client->create([
                 "items" => [
                     [
-                        "title" => (string) $request->descripcion,
-                        "quantity" => 1,
-                        "unit_price" => (float) $request->monto,
+                        "title"       => (string) ($request->descripcion ?? "Reserva de Turno"),
+                        "quantity"    => 1,
+                        "unit_price"  => (float) $request->monto,
                         "currency_id" => "ARS"
                     ]
                 ],
@@ -50,80 +49,60 @@ class MercadoPagoController extends Controller
                     "failure" => "https://kakopadel.vercel.app/failure",
                     "pending" => "https://kakopadel.vercel.app/pending"
                 ],
-                "auto_return" => "approved",
-                // IMPORTANTE: Mandarlo como JSON string
+                "auto_return"        => "approved",
                 "external_reference" => json_encode($externalData),
-                "notification_url" => "https://kako-backend.onrender.com/api/mercadopago/webhook",
+                "notification_url"   => "https://kako-backend.onrender.com/api/mercadopago/webhook",
             ]);
 
             return response()->json(['id' => $preference->id]);
 
         } catch (\Exception $e) {
-            Log::error("Error MP Preferencia: " . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
+            Log::error("MP Preference Error: " . $e->getMessage());
+            return response()->json(['error' => 'Mercado Pago Failure', 'detail' => $e->getMessage()], 500);
         }
     }
 
     public function handleWebhook(Request $request)
     {
-        $token = env('MP_ACCESS_TOKEN');
-        if (!$token) return response()->json(['error' => 'No token'], 500);
-
-        MercadoPagoConfig::setAccessToken($token);
-        $payload = $request->all();
-
         try {
-            $id = $payload['data']['id'] ?? $payload['id'] ?? null;
-            $type = $payload['type'] ?? $payload['topic'] ?? null;
+            $token = env('MP_ACCESS_TOKEN');
+            MercadoPagoConfig::setAccessToken($token);
 
-            if ($type !== 'payment' || !$id) {
-                return response()->json(['status' => 'ignored'], 200);
-            }
+            $id = $request->input('data.id') ?? $request->input('id');
+            $type = $request->input('type') ?? $request->input('topic');
+
+            if ($type !== 'payment' || !$id) return response()->json(['status' => 'ignored'], 200);
 
             $paymentClient = new PaymentClient();
             $payment = $paymentClient->get($id);
             
-            $status = $payment->status;
-            $externalReference = $payment->external_reference;
+            if ($payment->status === 'approved') {
+                $data = json_decode($payment->external_reference, true);
+                if (!$data) return response()->json(['status' => 'no_data'], 200);
 
-            if ($status === 'approved') {
-                $data = json_decode($externalReference, true);
-
-                if (!$data) {
-                    Log::error("Webhook: No se pudo decodificar external_reference", [$externalReference]);
-                    return response()->json(['error' => 'invalid data'], 200);
+                if (Reserva::where('referencia_pago', (string)$id)->exists()) {
+                    return response()->json(['status' => 'duplicate'], 200);
                 }
 
-                // Evitar duplicados
-                if (Reserva::where('referencia_pago', $id)->exists()) {
-                    return response()->json(['status' => 'already_done'], 200);
-                }
-
-                // Crear Reserva
                 $reserva = Reserva::create([
-                    'user_id' => $data['user_id'] ?? null,
-                    'turno_id' => $data['turno_id'],
-                    'nombre_jugador' => $data['nombre_jugador'] ?? 'Invitado',
-                    'whatsapp' => $data['whatsapp'],
+                    'user_id'            => $data['user_id'],
+                    'turno_id'           => $data['turno_id'],
+                    'nombre_jugador'     => $data['nombre_jugador'],
+                    'whatsapp'           => $data['whatsapp'],
                     'cantidad_jugadores' => $data['cantidad_jugadores'],
-                    'necesita_paleta' => $data['necesita_paleta'] ?? false,
-                    'buscar_pareja' => $data['buscar_pareja'] ?? false,
-                    'estado' => 'pagado',
-                    'referencia_pago' => $id,
-                    'precio_total' => $payment->transaction_details->total_paid_amount
+                    'necesita_paleta'    => $data['necesita_paleta'],
+                    'buscar_pareja'      => $data['buscar_pareja'],
+                    'estado'             => 'pagado',
+                    'referencia_pago'    => (string)$id,
+                    'precio_total'       => $payment->transaction_details->total_paid_amount
                 ]);
 
-                // Actualizar Turno
                 $turno = Turno::find($data['turno_id']);
-                if ($turno) {
-                    $turno->update(['estado' => 'reservado']);
-                }
+                if ($turno) $turno->update(['estado' => 'reservado']);
 
                 return response()->json(['status' => 'ok'], 200);
             }
-
-            return response()->json(['status' => $status], 200);
-
+            return response()->json(['status' => $payment->status], 200);
         } catch (\Exception $e) {
             Log::error("Webhook Error: " . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
