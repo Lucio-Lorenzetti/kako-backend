@@ -32,59 +32,51 @@ class MercadoPagoController extends Controller
 
         try {
             $mpToken = config('services.mercadopago.token', env('MP_ACCESS_TOKEN'));
-            
             if (!$mpToken) {
-                return response()->json(['error' => 'Token de Mercado Pago no configurado'], 500);
+                return response()->json(['error' => 'Token MP no encontrado en env'], 500);
             }
 
             MercadoPagoConfig::setAccessToken($mpToken);
             $client = new PreferenceClient();
 
-            // Identificar al usuario (fallback si auth() falla)
             $user = auth('api')->user() ?? auth()->user();
-            $userId = $user ? $user->id : null;
-            $nombreJugador = $user ? $user->name : 'Invitado';
+            
+            // Simplificamos los datos para evitar errores de codificación
+            $externalData = [
+                'turno_id' => (int) $request->turno_id,
+                'user_id'  => $user ? $user->id : null,
+                'wa'       => substr($request->whatsapp, 0, 15), // Nombre corto
+                'jug'      => (int) $request->cantidad_jugadores,
+                'nombre'   => $user ? substr($user->name, 0, 20) : 'Invitado'
+            ];
 
-            // 2. Construcción del cuerpo (Usando 'monto' corregido)
             $requestBody = [
                 'items' => [
                     [
-                        'title' => $request->descripcion,
-                        'quantity' => 1,
-                        'unit_price' => (float) $request->monto, // Antes decía sena
+                        'title'       => (string) $request->descripcion,
+                        'quantity'    => 1,
+                        'unit_price'  => (float) $request->monto,
                     ]
                 ],
                 'back_urls' => [
                     'success' => 'https://kakopadel.vercel.app/pago/success',
                     'failure' => 'https://kakopadel.vercel.app/failure',
-                    'pending' => 'https://kakopadel.vercel.app/pending',
                 ],
-                'auto_return' => 'approved',
-                'notification_url' => 'https://kako-backend.onrender.com/api/mercadopago/webhook',
-                'external_reference' => (string) json_encode([
-                    'turno_id' => $request->turno_id,
-                    'user_id' => $userId,
-                    'whatsapp' => $request->whatsapp,
-                    'cantidad_jugadores' => $request->cantidad_jugadores,
-                    'necesita_paleta' => $request->necesita_paleta,
-                    'buscar_pareja' => $request->buscar_pareja,
-                    'nombre_jugador' => $nombreJugador
-                ]),
+                'auto_return'        => 'approved',
+                'external_reference' => json_encode($externalData),
+                'notification_url'   => 'https://kako-backend.onrender.com/api/mercadopago/webhook',
             ];
 
             $preference = $client->create($requestBody);
-
             return response()->json(['id' => $preference->id], 200);
 
         } catch (\Throwable $e) {
-            Log::error('Error en MercadoPago Controller:', [
-                'mensaje' => $e->getMessage(),
-                'linea' => $e->getLine()
-            ]);
-
+            // ESTO ES LO MÁS IMPORTANTE: Ver qué dice la SDK
             return response()->json([
-                'error' => 'Error al conectar con Mercado Pago',
-                'debug_message' => $e->getMessage(), // <--- Esto te dirá el error real en la consola de Chrome
+                'error'   => 'Fallo Mercado Pago',
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine()
             ], 500);
         }
     }
