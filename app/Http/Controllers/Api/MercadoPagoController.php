@@ -18,6 +18,7 @@ class MercadoPagoController extends Controller
      */
     public function crearPreferencia(Request $request)
     {
+        // 1. Validación estricta
         $request->validate([
             'monto' => 'required|numeric|min:1',
             'descripcion' => 'required|string',
@@ -30,6 +31,7 @@ class MercadoPagoController extends Controller
 
         try {
             $mpToken = config('services.mercadopago.token', env('MP_ACCESS_TOKEN'));
+            
             if (!$mpToken) {
                 return response()->json(['error' => 'Token de Mercado Pago no configurado'], 500);
             }
@@ -37,20 +39,18 @@ class MercadoPagoController extends Controller
             MercadoPagoConfig::setAccessToken($mpToken);
             $client = new PreferenceClient();
 
-            $backendUrl = config('app.url');
-            $frontendUrl = config('app.frontend_url');
-            $nombreJugador = auth()->check() ? auth()->user()->name : 'Invitado';
+            // Identificar al usuario (fallback si auth() falla)
+            $user = auth('api')->user() ?? auth()->user();
+            $userId = $user ? $user->id : null;
+            $nombreJugador = $user ? $user->name : 'Invitado';
 
-            if (!$backendUrl || !$frontendUrl) {
-                throw new \Exception("APP_URL o FRONTEND_URL no configuradas.");
-            }
-
+            // 2. Construcción del cuerpo (Usando 'monto' corregido)
             $requestBody = [
                 'items' => [
                     [
                         'title' => $request->descripcion,
                         'quantity' => 1,
-                        'unit_price' => (float) $request->monto,
+                        'unit_price' => (float) $request->monto, // Antes decía sena
                     ]
                 ],
                 'back_urls' => [
@@ -58,17 +58,16 @@ class MercadoPagoController extends Controller
                     'failure' => 'https://kakopadel.vercel.app/failure',
                     'pending' => 'https://kakopadel.vercel.app/pending',
                 ],
-                
+                'auto_return' => 'approved',
                 'notification_url' => 'https://kako-backend.onrender.com/api/mercadopago/webhook',
-
-                'external_reference' => json_encode([
+                'external_reference' => (string) json_encode([
                     'turno_id' => $request->turno_id,
-                    'cantidad_jugadores' => $request->cantidad_jugadores,
-                    'buscar_pareja' => $request->buscar_pareja,
+                    'user_id' => $userId,
                     'whatsapp' => $request->whatsapp,
+                    'cantidad_jugadores' => $request->cantidad_jugadores,
                     'necesita_paleta' => $request->necesita_paleta,
-                    'user_id' => auth()->id(),
-                    'nombre_jugador' => $nombreJugador,
+                    'buscar_pareja' => $request->buscar_pareja,
+                    'nombre_jugador' => $nombreJugador
                 ]),
             ];
 
@@ -77,10 +76,10 @@ class MercadoPagoController extends Controller
             return response()->json(['id' => $preference->id], 200);
 
         } catch (\Throwable $e) {
-            \Log::error('Error creando preferencia MercadoPago: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            Log::error('Error MP:', ['msg' => $e->getMessage()]);
             return response()->json([
-                'error' => 'No se pudo generar la preferencia de pago.',
-                'details' => config('app.debug') ? $e->getMessage() : 'Error interno'
+                'error' => 'Error al conectar con Mercado Pago',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
