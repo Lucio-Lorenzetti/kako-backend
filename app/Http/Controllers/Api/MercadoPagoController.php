@@ -50,7 +50,7 @@ class MercadoPagoController extends Controller
                     [
                         'title' => $request->descripcion,
                         'quantity' => 1,
-                        'unit_price' => (float) $request->sena,
+                        'unit_price' => (float) $request->monto,
                     ]
                 ],
                 'back_urls' => [
