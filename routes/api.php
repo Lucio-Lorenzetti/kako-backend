@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Artisan; // <--- ¡ESTO ES MUY IMPORTANTE!
+use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\Api\TurnoController;
 use App\Http\Controllers\Api\ReservaController;
 use App\Http\Controllers\Admin\TurnoAdminController;
@@ -59,26 +59,29 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\IsAdmin::class])
 // RUTA PARA GENERAR TURNOS (USO INTERNO, PROTEGIDA POR TOKEN)
 // -----------------------------
 Route::get('/generar-turnos-sistema/{token}', function ($token) {
-    // Validamos el token secreto
     if ($token !== 'kako_padel_2026_secreto') {
         return response()->json(['error' => 'No autorizado'], 401);
     }
 
     try {
-        set_time_limit(120);
-
-        Artisan::call('turnos:generar-mensual');
-        $output = Artisan::output();
+        // 1. Evitar que PHP corte el proceso por tiempo
+        set_time_limit(300); 
         
+        // 2. Ejecutar el comando
+        Artisan::call('turnos:generar-mensual');
+        
+        // 3. Devolver una respuesta simple (sin guardar todo el output en memoria)
         return response()->json([
             'status' => 'success',
-            'message' => 'Proceso completado con éxito',
-            'output' => $output
+            'message' => 'Turnos procesados correctamente'
         ]);
+
     } catch (\Exception $e) {
+        // Logueamos el error exacto para que lo veas en Render si falla
+        Log::error("Error en GenerarTurnos: " . $e->getMessage());
+        
         return response()->json([
             'status' => 'error',
-            'message' => 'Error al ejecutar el comando',
             'details' => $e->getMessage()
         ], 500);
     }
