@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan; // <--- ¡ESTO ES MUY IMPORTANTE!
 use App\Http\Controllers\Api\TurnoController;
 use App\Http\Controllers\Api\ReservaController;
 use App\Http\Controllers\Admin\TurnoAdminController;
@@ -18,22 +19,17 @@ Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login']);
 Route::post('/mercadopago/webhook', [MercadoPagoController::class, 'handleWebhook']);
 Route::post('/mercadopago/preference-debug', [MercadoPagoController::class, 'crearPreferencia']);
 
-
 // -----------------------------
 // RUTAS USUARIOS AUTENTICADOS
 // -----------------------------
 Route::middleware('auth:sanctum')->group(function () {
-    // Usuarios
     Route::get('/me', [\App\Http\Controllers\Api\UserController::class, 'mydata']);
-    Route::middleware('auth:sanctum')->get('/mis-reservas/ultima', [ReservaController::class, 'ultimaReservaUsuario']);
-    // Reservas
-    Route::post('/reservas', [ReservaController::class, 'store']);          
-    Route::get('/reservas/{id}', [ReservaController::class, 'show']);       
+    Route::get('/mis-reservas/ultima', [ReservaController::class, 'ultimaReservaUsuario']);
+    Route::post('/reservas', [ReservaController::class, 'store']);           
+    Route::get('/reservas/{id}', [ReservaController::class, 'show']);        
     Route::delete('/reservas/{id}', [ReservaController::class, 'cancelar']); 
-    Route::get('/reservas/mias', [ReservaController::class, 'mias']);    
-    //Pagos
+    Route::get('/reservas/mias', [ReservaController::class, 'mias']);     
     Route::post('/mercadopago/preference', [MercadoPagoController::class, 'crearPreferencia']);
-    // Logout
     Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
 });
 
@@ -43,11 +39,9 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', \App\Http\Middleware\IsAdmin::class])
     ->prefix('admin')
     ->group(function () {
-        // Turnos
         Route::get('turnos', [TurnoAdminController::class, 'index']);     
         Route::post('turnos', [TurnoAdminController::class, 'store']);       
         Route::put('turnos/{id}', [TurnoAdminController::class, 'update']);  
-        // Reservas
         Route::get('reservas', [ReservaAdminController::class, 'index']);
         Route::get('reservas/hoy', [ReservaAdminController::class, 'hoy']);
         Route::get('reservas/{id}', [ReservaAdminController::class, 'show']);    
@@ -55,17 +49,37 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\IsAdmin::class])
         Route::get('precios', [TurnoAdminController::class, 'precios']);
         Route::put('/turnos/precio/{cancha}', [TurnoAdminController::class, 'updatePrecioPorCancha']);
         Route::put('reservas/{id}/liberar', [ReservaAdminController::class, 'liberar']);         
-        // Usuarios
         Route::get('usuarios', [UserController::class, 'index']);
         Route::get('usuarios/{id}', [UserController::class, 'show']);
         Route::put('usuarios/{id}', [UserController::class, 'update']);
         Route::delete('usuarios/{id}', [UserController::class, 'destroy']);
-
-        //Rutas innecesarias temporalmente
-        /*
-        Route::get('turnos/{id}', [TurnoAdminController::class, 'show']);
-        Route::delete('turnos/{id}', [TurnoAdminController::class, 'destroy']); 
-        Route::delete('reservas/{id}', [ReservaAdminController::class, 'destroy']); 
-        */
-
     });
+
+// -----------------------------
+// RUTA PARA GENERAR TURNOS (USO INTERNO, PROTEGIDA POR TOKEN)
+// -----------------------------
+Route::get('/generar-turnos-sistema/{token}', function ($token) {
+    // Validamos el token secreto
+    if ($token !== 'kako_padel_2026_secreto') {
+        return response()->json(['error' => 'No autorizado'], 401);
+    }
+
+    try {
+        set_time_limit(120);
+
+        Artisan::call('turnos:generar-mensual');
+        $output = Artisan::output();
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Proceso completado con éxito',
+            'output' => $output
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error al ejecutar el comando',
+            'details' => $e->getMessage()
+        ], 500);
+    }
+});

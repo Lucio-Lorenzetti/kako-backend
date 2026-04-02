@@ -5,16 +5,11 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\Turno;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class GenerarTurnosMensuales extends Command
 {
-    /**
-     * Si no se pasa el parámetro, genera el mes siguiente.
-     * Ejemplo:
-     * php artisan turnos:generar-mensual 2025-12
-     */
     protected $signature = 'turnos:generar-mensual {mes? : Mes a generar (YYYY-MM)}';
-
     protected $description = 'Genera los turnos de un mes determinado con precios correctos';
 
     public function handle()
@@ -31,34 +26,31 @@ class GenerarTurnosMensuales extends Command
             }
         } else {
             $hoy = Carbon::now();
-
-            // 🔹 Si estamos el día 1 del mes, generamos TODO el mes
-            if ($hoy->day == 1) {
-                $inicioMes = $hoy->copy()->startOfMonth();
-            } else {
-                // 🔹 Si es cualquier otro día, generamos solo desde hoy hasta fin de mes
-                $inicioMes = $hoy->copy();
-            }
-
+            // Si es día 1, generamos todo el mes. Si no, desde hoy a fin de mes.
+            $inicioMes = ($hoy->day == 1) ? $hoy->copy()->startOfMonth() : $hoy->copy();
             $finMes = $hoy->copy()->endOfMonth();
         }
 
-        $horarios = ['13:00:00', '14:30:00', '16:00:00', '17:30:00',
-                    '18:00:00', '19:30:00', '21:00:00', '22:30:00'];
-        $canchas = ['Interior', 'Exterior'];
+        $horarios = ['13:00:00', '14:30:00', '16:00:00', '17:30:00', '18:00:00', '19:30:00', '21:00:00', '22:30:00'];
+        $canchas = ['Interior'];
 
-        // 🔹 Obtener precios actuales por cancha
+        // Obtener últimos precios y señas
         $preciosPorCancha = [];
         foreach ($canchas as $cancha) {
-            $preciosPorCancha[$cancha] = Turno::where('cancha', $cancha)
+            $ultimo = Turno::where('cancha', $cancha)
                 ->whereNotNull('precio')
                 ->orderByDesc('fecha')
-                ->value('precio') ?? 0;
+                ->first();
+            
+            $preciosPorCancha[$cancha] = [
+                'precio' => $ultimo->precio ?? 0,
+                'sena'   => $ultimo->sena ?? 0
+            ];
         }
 
         $creados = 0;
 
-        // 🔹 Generación de turnos
+        // Bucle de generación
         for ($fecha = $inicioMes->copy(); $fecha->lte($finMes); $fecha->addDay()) {
             foreach ($horarios as $hora) {
                 foreach ($canchas as $cancha) {
@@ -72,9 +64,10 @@ class GenerarTurnosMensuales extends Command
                     Turno::create([
                         'fecha'  => $fecha->toDateString(),
                         'hora'   => $hora,
-                        'cancha' => $cancha,
+                        'cancha' => $cancha, // Siempre será 'Interior'
                         'estado' => 'disponible',
-                        'precio' => $preciosPorCancha[$cancha],
+                        'precio' => $preciosPorCancha[$cancha]['precio'],
+                        'sena'   => $preciosPorCancha[$cancha]['sena'],
                     ]);
 
                     $creados++;
@@ -82,8 +75,9 @@ class GenerarTurnosMensuales extends Command
             }
         }
 
-        $this->info("✔ Turnos creados: {$creados}");
-        $this->info("📅 Mes generado desde: {$inicioMes->format('Y-m-d')} hasta {$finMes->format('Y-m-d')}");
+        $mensaje = "✔ Turnos creados: {$creados}. Periodo: {$inicioMes->format('Y-m-d')} al {$finMes->format('Y-m-d')}";
+        $this->info($mensaje);
+        Log::info($mensaje); // Importante para ver en los logs de Render
 
         return Command::SUCCESS;
     }
