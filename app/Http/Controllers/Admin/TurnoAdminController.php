@@ -9,9 +9,11 @@ use App\Models\Turno;
 class TurnoAdminController extends Controller
 {
     // Listar todos los turnos
-    public function index()
-    {
-        return Turno::all();
+    public function index() {
+        return Turno::where('fecha', '>=', now()->toDateString()) // Solo de hoy en adelante
+            ->orderBy('fecha', 'asc')
+            ->orderBy('hora', 'asc')
+            ->get();
     }
 
     // Ver detalle de un turno específico

@@ -9,12 +9,24 @@ use Illuminate\Http\Request;
 
 class TurnoController extends Controller
 {
-    // Método para los turnos
     public function show()
     {
-        return Turno::orderBy('fecha')
+        $turnos = Turno::orderBy('fecha')
             ->orderBy('hora')
             ->get();
+        
+        $interior = Turno::where('cancha', 'Interior')->whereNotNull('precio')->latest()->first();
+        $exterior = Turno::where('cancha', 'Exterior')->whereNotNull('precio')->latest()->first();
+
+        return response()->json([
+            'turnos' => $turnos,
+            'precios' => [
+                'interior' => $interior ? $interior->precio : 0,
+                'sena_interior' => $interior ? $interior->sena : 0,
+                'exterior' => $exterior ? $exterior->precio : 0,
+                'sena_exterior' => $exterior ? $exterior->sena : 0,
+            ]
+        ]);
     }
 
     public function getPrecios()
