@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Turno;
+use Carbon\Carbon;
 
 class TurnoAdminController extends Controller
 {
@@ -54,6 +55,70 @@ class TurnoAdminController extends Controller
         return response()->json([
             'message' => 'Turno actualizado correctamente',
             'turno' => $turno
+        ], 200);
+    }
+
+    public function retrasarTurnos(Request $request, $id)
+    {
+        // 1. Buscamos el turno que el usuario seleccionó para iniciar el retraso
+        $turnoBase = Turno::findOrFail($id);
+        
+        // 2. Buscamos todos los turnos que cumplan tres condiciones:
+        //    - Misma fecha que el turno seleccionado.
+        //    - Misma cancha (Interior o Exterior).
+        //    - Hora igual o posterior a la del turno seleccionado.
+        $turnosAfectados = Turno::where('fecha', $turnoBase->fecha)
+            ->where('cancha', $turnoBase->cancha) 
+            ->where('hora', '>=', $turnoBase->hora)
+            ->orderBy('hora', 'asc') // Los procesamos en orden cronológico
+            ->get();
+
+        // 3. Iteramos y sumamos los 30 minutos
+        foreach ($turnosAfectados as $turno) {
+            // Usamos parse() que es más flexible con los formatos de hora (HH:mm o HH:mm:ss)
+            $nuevaHora = Carbon::parse($turno->hora)
+                ->addMinutes(30)
+                ->format('H:i:s');
+
+            $turno->update([
+                'hora' => $nuevaHora,                
+                'retrasado' => false
+            ]);
+        }
+
+        return response()->json([
+            'message' => "Se han retrasado 30 minutos todos los turnos de la cancha {$turnoBase->cancha} desde las {$turnoBase->hora}",
+            'turnos_actualizados' => $turnosAfectados->count()
+        ], 200);
+    }
+
+    public function adelantarTurnos(Request $request, $id)
+    {
+        // 1. Buscamos el turno base
+        $turnoBase = Turno::findOrFail($id);
+        
+        // 2. Buscamos todos los turnos del mismo día, cancha y horario igual o posterior
+        $turnosAfectados = Turno::where('fecha', $turnoBase->fecha)
+            ->where('cancha', $turnoBase->cancha) 
+            ->where('hora', '>=', $turnoBase->hora)
+            ->orderBy('hora', 'asc')
+            ->get();
+
+        // 3. Iteramos y restamos los 30 minutos
+        foreach ($turnosAfectados as $turno) {
+            $nuevaHora = Carbon::parse($turno->hora)
+                ->subMinutes(30) // <--- Aquí usamos subMinutes para volver atrás
+                ->format('H:i:s');
+
+            $turno->update([
+                'hora' => $nuevaHora,
+                'retrasado' => false
+            ]);
+        }
+
+        return response()->json([
+            'message' => "Se han adelantado 30 minutos (corrección) los turnos de la cancha {$turnoBase->cancha} desde las {$turnoBase->hora}",
+            'turnos_actualizados' => $turnosAfectados->count()
         ], 200);
     }
 

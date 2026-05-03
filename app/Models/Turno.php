@@ -12,9 +12,10 @@ class Turno extends Model
     protected $fillable = [
         'fecha',
         'hora',
+        'retrasado', 
         'estado', 
         'precio',
-        'sena',   // <--- AGREGAR ESTO
+        'sena',   
         'cancha' 
     ];
 

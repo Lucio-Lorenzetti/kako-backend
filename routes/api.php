@@ -47,6 +47,8 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\IsAdmin::class])
         Route::get('reservas/hoy', [ReservaAdminController::class, 'hoy']);
         Route::get('reservas/{id}', [ReservaAdminController::class, 'show']);    
         Route::put('reservas/{id}', [ReservaAdminController::class, 'update']);  
+        Route::post('/turnos/{id}/retrasar', [TurnoAdminController::class, 'retrasarTurnos']);
+        Route::post('/turnos/{id}/adelantar', [TurnoAdminController::class, 'adelantarTurnos']);
         Route::get('precios', [TurnoAdminController::class, 'precios']);
         Route::put('/turnos/precio/{cancha}', [TurnoAdminController::class, 'updatePrecioPorCancha']);
         Route::put('reservas/{id}/liberar', [ReservaAdminController::class, 'liberar']);         
