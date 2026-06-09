@@ -31,7 +31,7 @@ class GenerarTurnosMensuales extends Command
             $finMes = $hoy->copy()->endOfMonth();
         }
 
-        $horarios = ['13:00:00', '14:30:00', '16:00:00', '17:30:00', '18:00:00', '19:30:00', '21:00:00', '22:30:00'];
+        $horarios = ['13:00:00', '14:30:00', '16:00:00', '17:30:00', '19:00:00', '20:30:00', '22:00:00'];
         $canchas = ['Interior'];
 
         // Obtener últimos precios y señas

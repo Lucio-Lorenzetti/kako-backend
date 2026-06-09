@@ -59,7 +59,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\IsAdmin::class])
     });
 
 // -----------------------------
-// RUTA PARA GENERAR TURNOS (USO INTERNO, PROTEGIDA POR TOKEN)
+// RUTA PARA GENERAR, EDITAR Y BORRAR TURNOS (USO INTERNO, PROTEGIDA POR TOKEN)
 // -----------------------------
 Route::get('/generar-turnos-sistema/{token}', function ($token) {
     if ($token !== 'kako_padel_2026_secreto') {
@@ -88,4 +88,20 @@ Route::get('/generar-turnos-sistema/{token}', function ($token) {
             'details' => $e->getMessage()
         ], 500);
     }
+});
+
+Route::get('/marcar-inactivos-sistema/{token}', function ($token) {
+    if ($token !== env('CRON_SECRET', '')) {
+        return response()->json(['error' => 'No autorizado'], 401);
+    }
+    Artisan::call('turnos:marcar-inactivos');
+    return response()->json(['status' => 'success', 'message' => 'Turnos inactivos actualizados']);
+});
+
+Route::get('/limpiar-turnos-sistema/{token}', function ($token) {
+    if ($token !== env('CRON_SECRET', '')) {
+        return response()->json(['error' => 'No autorizado'], 401);
+    }
+    Artisan::call('turnos:limpiar-viejos');
+    return response()->json(['status' => 'success', 'message' => 'Turnos viejos eliminados']);
 });
