@@ -61,47 +61,50 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\IsAdmin::class])
 // -----------------------------
 // RUTA PARA GENERAR, EDITAR Y BORRAR TURNOS (USO INTERNO, PROTEGIDA POR TOKEN)
 // -----------------------------
-Route::get('/generar-turnos-sistema/{token}', function ($token) {
-    if ($token !== 'kako_padel_2026_secreto') {
-        return response()->json(['error' => 'No autorizado'], 401);
-    }
+$verificarTokenCron = function (string $token) {
+    $secreto = env('CRON_SECRET', '');
+    return $secreto !== '' && hash_equals($secreto, $token);
+};
 
+$ejecutarComandoCron = function (string $comando, string $mensajeExito) {
     try {
-        // 1. Evitar que PHP corte el proceso por tiempo
-        set_time_limit(300); 
-        
-        // 2. Ejecutar el comando
-        Artisan::call('turnos:generar-mensual');
-        
-        // 3. Devolver una respuesta simple (sin guardar todo el output en memoria)
+        set_time_limit(300);
+        Artisan::call($comando);
+
         return response()->json([
             'status' => 'success',
-            'message' => 'Turnos procesados correctamente'
+            'message' => $mensajeExito,
         ]);
-
     } catch (\Exception $e) {
-        // Logueamos el error exacto para que lo veas en Render si falla
-        Log::error("Error en GenerarTurnos: " . $e->getMessage());
-        
+        Log::error("Error en cron [{$comando}]: " . $e->getMessage());
+
         return response()->json([
             'status' => 'error',
-            'details' => $e->getMessage()
+            'details' => $e->getMessage(),
         ], 500);
     }
-});
+};
 
-Route::get('/marcar-inactivos-sistema/{token}', function ($token) {
-    if ($token !== env('CRON_SECRET', '')) {
+Route::get('/generar-turnos-sistema/{token}', function ($token) use ($verificarTokenCron, $ejecutarComandoCron) {
+    if (! $verificarTokenCron($token)) {
         return response()->json(['error' => 'No autorizado'], 401);
     }
-    Artisan::call('turnos:marcar-inactivos');
-    return response()->json(['status' => 'success', 'message' => 'Turnos inactivos actualizados']);
+
+    return $ejecutarComandoCron('turnos:generar-mensual', 'Turnos procesados correctamente');
 });
 
-Route::get('/limpiar-turnos-sistema/{token}', function ($token) {
-    if ($token !== env('CRON_SECRET', '')) {
+Route::get('/marcar-inactivos-sistema/{token}', function ($token) use ($verificarTokenCron, $ejecutarComandoCron) {
+    if (! $verificarTokenCron($token)) {
         return response()->json(['error' => 'No autorizado'], 401);
     }
-    Artisan::call('turnos:limpiar-viejos');
-    return response()->json(['status' => 'success', 'message' => 'Turnos viejos eliminados']);
+
+    return $ejecutarComandoCron('turnos:marcar-inactivos', 'Turnos inactivos actualizados');
+});
+
+Route::get('/limpiar-turnos-sistema/{token}', function ($token) use ($verificarTokenCron, $ejecutarComandoCron) {
+    if (! $verificarTokenCron($token)) {
+        return response()->json(['error' => 'No autorizado'], 401);
+    }
+
+    return $ejecutarComandoCron('turnos:limpiar-viejos', 'Turnos viejos eliminados');
 });
