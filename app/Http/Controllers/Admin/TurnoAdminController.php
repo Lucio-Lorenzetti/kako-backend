@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Turno;
+use App\Models\Precio;
 use Carbon\Carbon;
 
 class TurnoAdminController extends Controller
@@ -124,15 +125,14 @@ class TurnoAdminController extends Controller
 
     public function precios()
     {
-        $interior = Turno::where('cancha', 'Interior')->first();
-        $exterior = Turno::where('cancha', 'Exterior')->first();
+        $interior = Precio::paraCancha('Interior');
+        $exterior = Precio::paraCancha('Exterior');
 
         return response()->json([
-            // Si no existe el registro, devolvemos 0 en lugar de romper
-            'interior'      => $interior ? $interior->precio : 0,
-            'sena_interior' => $interior ? $interior->sena : 0,
-            'exterior'      => $exterior ? $exterior->precio : 0,
-            'sena_exterior' => $exterior ? $exterior->sena : 0,
+            'interior'      => $interior->precio,
+            'sena_interior' => $interior->sena,
+            'exterior'      => $exterior->precio,
+            'sena_exterior' => $exterior->sena,
         ]);
     }
 
@@ -158,10 +158,16 @@ class TurnoAdminController extends Controller
             return response()->json(['error' => 'Cancha inválida'], 422);
         }
 
-        // Actualiza todos los turnos de esa cancha (Precio y Seña)
+        // Fuente de verdad para los próximos turnos que se generen
+        Precio::updateOrCreate(
+            ['cancha' => $cancha],
+            ['precio' => $request->precio, 'sena' => $request->sena]
+        );
+
+        // Y reflejamos el cambio en los turnos ya existentes de esa cancha
         Turno::where('cancha', $cancha)->update([
             'precio' => $request->precio,
-            'sena'   => $request->sena, // Guardamos la seña en la BD
+            'sena'   => $request->sena,
         ]);
 
         return response()->json([

@@ -14,31 +14,31 @@ class TurnoController extends Controller
         $turnos = Turno::orderBy('fecha')
             ->orderBy('hora')
             ->get();
-        
-        $interior = Turno::where('cancha', 'Interior')->whereNotNull('precio')->latest()->first();
-        $exterior = Turno::where('cancha', 'Exterior')->whereNotNull('precio')->latest()->first();
+
+        $interior = Precio::paraCancha('Interior');
+        $exterior = Precio::paraCancha('Exterior');
 
         return response()->json([
             'turnos' => $turnos,
             'precios' => [
-                'interior' => $interior ? $interior->precio : 0,
-                'sena_interior' => $interior ? $interior->sena : 0,
-                'exterior' => $exterior ? $exterior->precio : 0,
-                'sena_exterior' => $exterior ? $exterior->sena : 0,
+                'interior' => $interior->precio,
+                'sena_interior' => $interior->sena,
+                'exterior' => $exterior->precio,
+                'sena_exterior' => $exterior->sena,
             ]
         ]);
     }
 
     public function getPrecios()
     {
-        $interior = \App\Models\Turno::where('cancha', 'Interior')->latest()->first();
-        $exterior = \App\Models\Turno::where('cancha', 'Exterior')->latest()->first();
+        $interior = Precio::paraCancha('Interior');
+        $exterior = Precio::paraCancha('Exterior');
 
         return response()->json([
-            'interior' => $interior ? $interior->precio : 0,
-            'sena_interior' => $interior ? $interior->sena : 0,
-            'exterior' => $exterior ? $exterior->precio : 0,
-            'sena_exterior' => $exterior ? $exterior->sena : 0,
+            'interior' => $interior->precio,
+            'sena_interior' => $interior->sena,
+            'exterior' => $exterior->precio,
+            'sena_exterior' => $exterior->sena,
         ]);
     }
 }

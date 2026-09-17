@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\Turno;
+use App\Models\Precio;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -34,25 +35,21 @@ class GenerarTurnosMensuales extends Command
         $horarios = ['13:00:00', '14:30:00', '16:00:00', '17:30:00', '19:00:00', '20:30:00', '22:00:00'];
         $canchas = ['Interior'];
 
-        // Obtener últimos precios y señas
+        // Precio de referencia: viene de la tabla "precios" (independiente de los
+        // turnos existentes), así borrar/generar turnos nunca lo puede afectar.
         $preciosPorCancha = [];
         foreach ($canchas as $cancha) {
-            // Un precio en 0 no cuenta como referencia válida: si no lo excluimos,
-            // un turno mal cargado en 0 se propagaría para siempre a los meses siguientes.
-            $ultimo = Turno::where('cancha', $cancha)
-                ->where('precio', '>', 0)
-                ->orderByDesc('fecha')
-                ->first();
+            $precio = Precio::paraCancha($cancha);
 
-            if (! $ultimo) {
-                $mensaje = "No se encontró ningún turno con precio válido para la cancha {$cancha}. Se generarán con precio 0, hay que cargar el precio real desde el panel de admin.";
+            if ($precio->precio <= 0) {
+                $mensaje = "El precio configurado para la cancha {$cancha} es 0. Se generarán los turnos con precio 0, hay que cargar el precio real desde el panel de admin.";
                 $this->warn($mensaje);
                 Log::warning($mensaje);
             }
 
             $preciosPorCancha[$cancha] = [
-                'precio' => $ultimo->precio ?? 0,
-                'sena'   => $ultimo->sena ?? 0
+                'precio' => $precio->precio,
+                'sena'   => $precio->sena,
             ];
         }
 
