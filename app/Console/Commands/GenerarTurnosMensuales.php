@@ -37,11 +37,19 @@ class GenerarTurnosMensuales extends Command
         // Obtener últimos precios y señas
         $preciosPorCancha = [];
         foreach ($canchas as $cancha) {
+            // Un precio en 0 no cuenta como referencia válida: si no lo excluimos,
+            // un turno mal cargado en 0 se propagaría para siempre a los meses siguientes.
             $ultimo = Turno::where('cancha', $cancha)
-                ->whereNotNull('precio')
+                ->where('precio', '>', 0)
                 ->orderByDesc('fecha')
                 ->first();
-            
+
+            if (! $ultimo) {
+                $mensaje = "No se encontró ningún turno con precio válido para la cancha {$cancha}. Se generarán con precio 0, hay que cargar el precio real desde el panel de admin.";
+                $this->warn($mensaje);
+                Log::warning($mensaje);
+            }
+
             $preciosPorCancha[$cancha] = [
                 'precio' => $ultimo->precio ?? 0,
                 'sena'   => $ultimo->sena ?? 0
