@@ -68,6 +68,9 @@ $verificarTokenCron = function (string $token) {
 
 $ejecutarComandoCron = function (string $comando, string $mensajeExito) {
     try {
+        // El cliente (cron-job.org) puede cortar la conexión por timeout
+        // antes de que el comando termine; que siga corriendo igual.
+        ignore_user_abort(true);
         set_time_limit(300);
         Artisan::call($comando);
 
