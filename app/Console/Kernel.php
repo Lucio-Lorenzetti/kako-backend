@@ -9,9 +9,10 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule): void
     {
-        // Genera turnos el día 1 de cada mes
+        // Ventana rodante: todos los días a las 23:00 genera los turnos que
+        // falten hasta 7 días adelante
         $schedule->command('turnos:generar-mensual')
-            ->monthlyOn(1, '00:00')
+            ->dailyAt('23:00')
             ->withoutOverlapping();
 
         // Marca turnos pasados como inactivos — cada 30 minutos

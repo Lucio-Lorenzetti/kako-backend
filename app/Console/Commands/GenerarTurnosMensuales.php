@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Log;
 
 class GenerarTurnosMensuales extends Command
 {
-    protected $signature = 'turnos:generar-mensual {mes? : Mes a generar (YYYY-MM)}';
-    protected $description = 'Genera los turnos de un mes determinado con precios correctos';
+    protected $signature = 'turnos:generar-mensual {mes? : Generar un mes puntual (YYYY-MM) en vez de la ventana rodante}';
+    protected $description = 'Genera los turnos de los próximos 7 días (ventana rodante) o de un mes puntual si se pasa el parámetro';
 
     public function handle()
     {
@@ -26,10 +26,13 @@ class GenerarTurnosMensuales extends Command
                 return Command::FAILURE;
             }
         } else {
+            // Ventana rodante: se corre todos los días y cubre de mañana hasta
+            // dentro de 7 días. Repetir el rango (en vez de generar solo el día
+            // +7) hace que sea autorreparable: si un día se corta el cron, la
+            // corrida siguiente completa el hueco (exists() evita duplicados).
             $hoy = Carbon::now();
-            // Si es día 1, generamos todo el mes. Si no, desde hoy a fin de mes.
-            $inicioMes = ($hoy->day == 1) ? $hoy->copy()->startOfMonth() : $hoy->copy();
-            $finMes = $hoy->copy()->endOfMonth();
+            $inicioMes = $hoy->copy()->addDay();
+            $finMes = $hoy->copy()->addDays(7);
         }
 
         $horarios = ['13:00:00', '14:30:00', '16:00:00', '17:30:00', '19:00:00', '20:30:00', '22:00:00'];
