@@ -26,12 +26,12 @@ class GenerarTurnosMensuales extends Command
                 return Command::FAILURE;
             }
         } else {
-            // Ventana rodante: se corre todos los días y cubre de mañana hasta
-            // dentro de 7 días. Repetir el rango (en vez de generar solo el día
-            // +7) hace que sea autorreparable: si un día se corta el cron, la
-            // corrida siguiente completa el hueco (exists() evita duplicados).
+            // Ventana rodante: se corre todos los días y cubre desde HOY hasta
+            // dentro de 7 días (incluir hoy es lo que la hace autorreparable
+            // también para el día actual, no solo para el resto de la semana,
+            // si algo llegara a borrar los turnos de hoy por error).
             $hoy = Carbon::now();
-            $inicioMes = $hoy->copy()->addDay();
+            $inicioMes = $hoy->copy();
             $finMes = $hoy->copy()->addDays(7);
         }
 
