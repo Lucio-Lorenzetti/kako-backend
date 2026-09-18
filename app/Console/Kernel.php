@@ -20,9 +20,10 @@ class Kernel extends ConsoleKernel
             ->everyThirtyMinutes()
             ->withoutOverlapping();
 
-        // Limpia turnos viejos — todos los días a las 23:59
+        // Limpia el mes calendario anterior completo — día 10 de cada mes
+        // (da margen para que el admin saque reportes antes del borrado)
         $schedule->command('turnos:limpiar-viejos')
-            ->dailyAt('23:59')
+            ->monthlyOn(10, '03:00')
             ->withoutOverlapping();
     }
 
