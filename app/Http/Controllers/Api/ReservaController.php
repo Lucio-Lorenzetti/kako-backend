@@ -13,7 +13,7 @@ class ReservaController extends Controller
     // Listar todas las reservas (solo admin)
     public function index(Request $request)
     {
-        if (auth()->user()->role !== 'admin') {
+        if (!in_array(auth()->user()->role, ['admin', 'developer'])) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
@@ -145,7 +145,7 @@ class ReservaController extends Controller
     // Listar reservas del usuario autenticado
     public function mias()
     {
-        if (auth()->user()->role === 'admin') {
+        if (in_array(auth()->user()->role, ['admin', 'developer'])) {
             return response()->json(['error' => 'Los administradores deben usar /admin/reservas'], 403);
         }
 

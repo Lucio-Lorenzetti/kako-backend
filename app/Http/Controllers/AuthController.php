@@ -11,8 +11,10 @@ class AuthController extends Controller
     // Registro
     public function register(Request $request)
     {
-        // Determinar si quien está haciendo el request es un admin logueado
-        $isAdmin = auth()->check() && auth()->user()->role === 'admin';
+        // Determinar si quien está haciendo el request es staff logueado (admin o developer)
+        $actor = auth()->check() ? auth()->user() : null;
+        $isDeveloper = $actor && $actor->role === 'developer';
+        $isStaff = $actor && in_array($actor->role, ['admin', 'developer']);
 
         // Validaciones
         $rules = [
@@ -21,17 +23,19 @@ class AuthController extends Controller
             'password' => 'required|string|min:8|confirmed', // requiere password_confirmation
         ];
 
-        // Solo validar el role si lo está poniendo un admin
-        if ($isAdmin) {
-            $rules['role'] = 'required|in:user,admin';
+        // Solo validar el role si lo está poniendo un miembro del staff
+        // Crear admins (o developers) es exclusivo del developer; un admin común solo puede crear usuarios normales
+        if ($isStaff) {
+            $rolesPermitidos = $isDeveloper ? 'user,admin,developer' : 'user';
+            $rules['role'] = "required|in:{$rolesPermitidos}";
             $rules['estado'] = 'required|in:Activo,Inactivo';
         }
 
         $request->validate($rules);
 
         // Asignar rol y estado
-        $role = $isAdmin ? $request->role : 'user';
-        $estado = $isAdmin ? $request->estado : 'Activo';
+        $role = $isStaff ? $request->role : 'user';
+        $estado = $isStaff ? $request->estado : 'Activo';
 
         $user = User::create([
             'name' => $request->name,

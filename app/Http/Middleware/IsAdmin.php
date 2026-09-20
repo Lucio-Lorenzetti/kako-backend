@@ -18,8 +18,8 @@ class IsAdmin
      */
     public function handle(Request $request, Closure $next)
     {
-        // Verifica si el usuario está logueado y es admin
-        if (Auth::check() && Auth::user()->role === 'admin') {
+        // Verifica si el usuario está logueado y es admin o developer (el developer tiene todos los permisos de admin, y más)
+        if (Auth::check() && in_array(Auth::user()->role, ['admin', 'developer'])) {
             return $next($request);
         }
 

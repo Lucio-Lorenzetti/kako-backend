@@ -15,7 +15,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role', // 'user' o 'admin'
+        'role', // 'user', 'admin' o 'developer'
         'estado', // 'Activo' o 'Inactivo'
     ];
 
