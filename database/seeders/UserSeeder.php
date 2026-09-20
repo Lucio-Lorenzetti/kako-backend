@@ -40,7 +40,7 @@ class UserSeeder extends Seeder
 
         User::create([
             'name' => 'Lucio Adriel',
-            'email' => 'lorenzettilucioadriell@gmail.com',
+            'email' => 'lorenzettilucioadriel@gmail.com',
             'password' => Hash::make('42293176'),
             'role' => 'developer',
         ]);
