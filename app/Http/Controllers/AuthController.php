@@ -133,17 +133,25 @@ class AuthController extends Controller
         return response()->json(['message' => 'Logout exitoso, todas las sesiones cerradas']);
     }
 
-    // Cambiar la propia contraseña estando logueado
+    // Cambiar la propia contraseña estando logueado.
+    // Si la cuenta tiene Google vinculado, no se exige la contraseña actual:
+    // haber entrado con Google ya verificó la identidad, y así funciona como
+    // recuperación de contraseña para quien se olvidó la suya.
     public function changePassword(Request $request)
     {
-        $request->validate([
-            'current_password' => 'required|string',
-            'password' => 'required|string|min:8|confirmed', // requiere password_confirmation
-        ]);
-
         $user = $request->user();
 
-        if (!Hash::check($request->current_password, $user->password)) {
+        $rules = [
+            'password' => 'required|string|min:8|confirmed', // requiere password_confirmation
+        ];
+
+        if (!$user->google_id) {
+            $rules['current_password'] = 'required|string';
+        }
+
+        $request->validate($rules);
+
+        if (!$user->google_id && !Hash::check($request->current_password, $user->password)) {
             return response()->json(['error' => 'La contraseña actual no es correcta'], 422);
         }
 
