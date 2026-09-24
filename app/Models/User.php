@@ -15,6 +15,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'google_id',
         'role', // 'user', 'admin' o 'developer'
         'estado', // 'Activo' o 'Inactivo'
     ];

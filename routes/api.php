@@ -17,6 +17,7 @@ Route::get('/turnos', [TurnoController::class, 'show']);
 Route::get('/precios-publicos', [TurnoController::class, 'getPrecios']);
 Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register']);
 Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login']);
+Route::post('/auth/google', [\App\Http\Controllers\AuthController::class, 'loginWithGoogle']);
 Route::post('/mercadopago/webhook', [MercadoPagoController::class, 'handleWebhook']);
 Route::post('/mercadopago/preference-debug', [MercadoPagoController::class, 'crearPreferencia']);
 
@@ -32,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reservas/mias', [ReservaController::class, 'mias']);     
     Route::post('/mercadopago/preference', [MercadoPagoController::class, 'crearPreferencia']);
     Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
+    Route::put('/me/password', [\App\Http\Controllers\AuthController::class, 'changePassword']);
 });
 
 // -----------------------------

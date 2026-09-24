@@ -37,6 +37,11 @@ return [
 
     'mercadopago' => [
         'access_token' => env('MP_ACCESS_TOKEN'),
+        'webhook_secret' => env('MP_WEBHOOK_SECRET'),
+    ],
+
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
     ],
 
 ];

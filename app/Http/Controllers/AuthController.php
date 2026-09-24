@@ -64,7 +64,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (!$user || !$user->password || !Hash::check($request->password, $user->password)) {
             return response()->json(['error' => 'Credenciales inválidas'], 401);
         }
 
@@ -76,6 +76,54 @@ class AuthController extends Controller
         ]);
     }
 
+    // Login / registro automático con Google (recibe el id_token que genera el botón de Google en el front)
+    public function loginWithGoogle(Request $request)
+    {
+        $request->validate([
+            'id_token' => 'required|string',
+        ]);
+
+        $clientId = config('services.google.client_id');
+        if (!$clientId) {
+            return response()->json(['error' => 'Google login no configurado'], 500);
+        }
+
+        $client = new \Google\Client(['client_id' => $clientId]);
+        $payload = $client->verifyIdToken($request->id_token);
+
+        if (!$payload || empty($payload['email']) || empty($payload['email_verified']) || empty($payload['sub'])) {
+            return response()->json(['error' => 'Token de Google inválido'], 401);
+        }
+
+        $googleId = $payload['sub'];
+        $email = $payload['email'];
+        $name = $payload['name'] ?? $email;
+
+        $user = User::where('google_id', $googleId)->orWhere('email', $email)->first();
+
+        if ($user) {
+            if (!$user->google_id) {
+                $user->update(['google_id' => $googleId]);
+            }
+        } else {
+            $user = User::create([
+                'name' => $name,
+                'email' => $email,
+                'password' => null,
+                'google_id' => $googleId,
+                'role' => 'user',
+                'estado' => 'Activo',
+            ]);
+        }
+
+        $token = $user->createToken('token-login')->plainTextToken;
+
+        return response()->json([
+            'user' => $user,
+            'token' => $token,
+        ]);
+    }
+
     // Logout
     public function logout(Request $request)
     {
@@ -83,5 +131,24 @@ class AuthController extends Controller
         $request->user()->tokens()->delete();
 
         return response()->json(['message' => 'Logout exitoso, todas las sesiones cerradas']);
+    }
+
+    // Cambiar la propia contraseña estando logueado
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required|string',
+            'password' => 'required|string|min:8|confirmed', // requiere password_confirmation
+        ]);
+
+        $user = $request->user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json(['error' => 'La contraseña actual no es correcta'], 422);
+        }
+
+        $user->update(['password' => Hash::make($request->password)]);
+
+        return response()->json(['message' => 'Contraseña actualizada correctamente']);
     }
 }
