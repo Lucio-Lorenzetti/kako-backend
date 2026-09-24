@@ -89,6 +89,13 @@ class MercadoPagoController extends Controller
      */
     public function handleWebhook(Request $request)
     {
+        if (!$this->validarFirmaWebhook($request)) {
+            \Log::warning('Webhook de MercadoPago rechazado: firma inválida o ausente.', [
+                'ip' => $request->ip(),
+            ]);
+            return response()->json(['error' => 'Firma inválida'], 401);
+        }
+
         $mpToken = config('services.mercadopago.token', env('MP_ACCESS_TOKEN'));
         if (!$mpToken) {
             \Log::error('Webhook recibido pero token de MercadoPago no configurado.');
@@ -164,6 +171,54 @@ class MercadoPagoController extends Controller
             \Log::error('Error procesando webhook MercadoPago: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json(['error' => 'processing_error'], 500);
         }
-        
+
+    }
+
+    /**
+     * Valida que el webhook realmente venga de Mercado Pago, verificando el
+     * header x-signature (HMAC-SHA256) contra la clave secreta del webhook.
+     * https://www.mercadopago.com.ar/developers/es/docs/checkout-api/additional-content/your-integrations/notifications/webhooks#editor_2
+     */
+    private function validarFirmaWebhook(Request $request): bool
+    {
+        $secret = config('services.mercadopago.webhook_secret');
+        if (!$secret) {
+            \Log::error('MP_WEBHOOK_SECRET no configurado; se rechaza el webhook por seguridad.');
+            return false;
+        }
+
+        $xSignature = $request->header('x-signature');
+        $xRequestId = $request->header('x-request-id');
+        $dataId = $request->query('data.id') ?? $request->query('id');
+
+        if (!$xSignature || !$xRequestId || !$dataId) {
+            return false;
+        }
+
+        $ts = null;
+        $hashRecibido = null;
+
+        foreach (explode(',', $xSignature) as $parte) {
+            $par = explode('=', trim($parte), 2);
+            if (count($par) !== 2) {
+                continue;
+            }
+            [$clave, $valor] = $par;
+            if (trim($clave) === 'ts') {
+                $ts = trim($valor);
+            } elseif (trim($clave) === 'v1') {
+                $hashRecibido = trim($valor);
+            }
+        }
+
+        if (!$ts || !$hashRecibido) {
+            return false;
+        }
+
+        $dataIdNormalizado = strtolower((string) $dataId);
+        $manifest = "id:{$dataIdNormalizado};request-id:{$xRequestId};ts:{$ts};";
+        $hashCalculado = hash_hmac('sha256', $manifest, $secret);
+
+        return hash_equals($hashCalculado, $hashRecibido);
     }
 }
