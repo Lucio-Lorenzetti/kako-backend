@@ -10,6 +10,11 @@ class Precio extends Model
         'cancha',
         'precio',
         'sena',
+        'requiere_4_jugadores',
+    ];
+
+    protected $casts = [
+        'requiere_4_jugadores' => 'boolean',
     ];
 
     public static function paraCancha(string $cancha): self

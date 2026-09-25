@@ -10,6 +10,7 @@ use MercadoPago\Client\Payment\PaymentClient;
 use Illuminate\Support\Facades\Http;
 use App\Models\Reserva;
 use App\Models\Turno;
+use App\Models\Precio;
 
 class MercadoPagoController extends Controller
 {
@@ -27,6 +28,15 @@ class MercadoPagoController extends Controller
             'buscar_pareja' => 'required|boolean',
             'necesita_paleta' => 'required|boolean',
         ]);
+
+        $turno = Turno::find($request->turno_id);
+        $precioCancha = Precio::paraCancha($turno->cancha);
+
+        if ($precioCancha->requiere_4_jugadores && (int) $request->cantidad_jugadores !== 4) {
+            return response()->json([
+                'error' => "La cancha {$turno->cancha} solo admite reservas con 4 jugadores.",
+            ], 422);
+        }
 
         try {
             $mpToken = config('services.mercadopago.token', env('MP_ACCESS_TOKEN'));

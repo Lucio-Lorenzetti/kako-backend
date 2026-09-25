@@ -131,8 +131,10 @@ class TurnoAdminController extends Controller
         return response()->json([
             'interior'      => $interior->precio,
             'sena_interior' => $interior->sena,
+            'requiere_4_jugadores_interior' => $interior->requiere_4_jugadores,
             'exterior'      => $exterior->precio,
             'sena_exterior' => $exterior->sena,
+            'requiere_4_jugadores_exterior' => $exterior->requiere_4_jugadores,
         ]);
     }
 
@@ -144,6 +146,7 @@ class TurnoAdminController extends Controller
         $request->validate([
             'precio' => 'required|numeric|min:0',
             'sena'   => 'required|numeric|min:0',
+            'requiere_4_jugadores' => 'sometimes|boolean',
         ]);
 
         // CONTROL LÓGICO: Seña no puede ser mayor al precio
@@ -159,10 +162,12 @@ class TurnoAdminController extends Controller
         }
 
         // Fuente de verdad para los próximos turnos que se generen
-        Precio::updateOrCreate(
-            ['cancha' => $cancha],
-            ['precio' => $request->precio, 'sena' => $request->sena]
-        );
+        $datosPrecio = ['precio' => $request->precio, 'sena' => $request->sena];
+        if ($request->has('requiere_4_jugadores')) {
+            $datosPrecio['requiere_4_jugadores'] = $request->boolean('requiere_4_jugadores');
+        }
+
+        Precio::updateOrCreate(['cancha' => $cancha], $datosPrecio);
 
         // Y reflejamos el cambio en los turnos ya existentes de esa cancha
         Turno::where('cancha', $cancha)->update([
