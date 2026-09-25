@@ -37,8 +37,10 @@ class TurnoController extends Controller
         return response()->json([
             'interior' => $interior->precio,
             'sena_interior' => $interior->sena,
+            'requiere_4_jugadores_interior' => $interior->requiere_4_jugadores,
             'exterior' => $exterior->precio,
             'sena_exterior' => $exterior->sena,
+            'requiere_4_jugadores_exterior' => $exterior->requiere_4_jugadores,
         ]);
     }
 }
