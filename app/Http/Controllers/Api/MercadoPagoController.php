@@ -118,7 +118,10 @@ class MercadoPagoController extends Controller
 
         try {
             $topic = $payload['topic'] ?? $payload['type'] ?? null;
-            $id = $payload['id'] ?? $payload['data']['id'] ?? null;
+            // En el formato nuevo, el "id" de primer nivel es el ID de la notificación
+            // (no el del pago) — el pago real está en "data.id". Ese formato legacy
+            // (?id=X&topic=payment) no trae "data", ahí "id" sí es el del pago.
+            $id = $payload['data']['id'] ?? $payload['id'] ?? null;
 
             if (!$topic || !$id) {
                 return response()->json(['status' => 'ignored'], 200);
