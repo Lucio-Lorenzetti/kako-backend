@@ -199,7 +199,11 @@ class MercadoPagoController extends Controller
 
         $xSignature = $request->header('x-signature');
         $xRequestId = $request->header('x-request-id');
-        $dataId = $request->query('data.id') ?? $request->query('id');
+
+        // PHP reemplaza los puntos por guiones bajos en las claves de la query
+        // string (data.id -> data_id) antes de que Laravel la vea, así que
+        // "data.id" nunca se puede leer con $request->query('data.id').
+        $dataId = $request->query('data_id') ?? $request->query('id');
 
         if (!$xSignature || !$xRequestId || !$dataId) {
             return false;
