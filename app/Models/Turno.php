@@ -12,8 +12,8 @@ class Turno extends Model
     protected $fillable = [
         'fecha',
         'hora',
-        'retrasado', 
-        'estado', 
+        'ajuste_minutos',
+        'estado',
         'precio',
         'sena',   
         'cancha' 

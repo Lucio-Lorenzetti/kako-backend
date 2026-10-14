@@ -7,9 +7,14 @@ use Illuminate\Http\Request;
 use App\Models\Turno;
 use App\Models\Precio;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class TurnoAdminController extends Controller
 {
+    // Duración de cada turno en la grilla horaria del negocio (13:00, 14:30, 16:00, ...)
+    private const DURACION_TURNO_MINUTOS = 90;
+    private const AJUSTE_MAXIMO_MINUTOS = 30;
+
     // Listar todos los turnos
     public function index() {
         return Turno::where('fecha', '>=', now()->toDateString()) // Solo de hoy en adelante
@@ -63,29 +68,42 @@ class TurnoAdminController extends Controller
     {
         // 1. Buscamos el turno que el usuario seleccionó para iniciar el retraso
         $turnoBase = Turno::findOrFail($id);
-        
+
+        // No se puede retrasar un turno que ya está en su límite de retraso
+        if ($turnoBase->ajuste_minutos >= self::AJUSTE_MAXIMO_MINUTOS) {
+            return response()->json([
+                'error' => 'Este turno ya fue retrasado 30 minutos. Volvé a su horario original antes de retrasarlo de nuevo.',
+            ], 422);
+        }
+
         // 2. Buscamos todos los turnos que cumplan tres condiciones:
         //    - Misma fecha que el turno seleccionado.
         //    - Misma cancha (Interior o Exterior).
         //    - Hora igual o posterior a la del turno seleccionado.
         $turnosAfectados = Turno::where('fecha', $turnoBase->fecha)
-            ->where('cancha', $turnoBase->cancha) 
+            ->where('cancha', $turnoBase->cancha)
             ->where('hora', '>=', $turnoBase->hora)
             ->orderBy('hora', 'asc') // Los procesamos en orden cronológico
             ->get();
 
-        // 3. Iteramos y sumamos los 30 minutos
+        // Si algún turno de la cascada ya está en su límite, abortamos antes de tocar nada
         foreach ($turnosAfectados as $turno) {
-            // Usamos parse() que es más flexible con los formatos de hora (HH:mm o HH:mm:ss)
-            $nuevaHora = Carbon::parse($turno->hora)
-                ->addMinutes(30)
-                ->format('H:i:s');
-
-            $turno->update([
-                'hora' => $nuevaHora,                
-                'retrasado' => false
-            ]);
+            if ($turno->ajuste_minutos >= self::AJUSTE_MAXIMO_MINUTOS) {
+                return response()->json([
+                    'error' => "No se puede retrasar: el turno de las {$turno->hora} ya está retrasado al máximo permitido.",
+                ], 422);
+            }
         }
+
+        // 3. Sumamos los 30 minutos a todos los turnos afectados dentro de una transacción
+        DB::transaction(function () use ($turnosAfectados) {
+            foreach ($turnosAfectados as $turno) {
+                $turno->update([
+                    'hora' => Carbon::parse($turno->hora)->addMinutes(30)->format('H:i:s'),
+                    'ajuste_minutos' => $turno->ajuste_minutos + 30,
+                ]);
+            }
+        });
 
         return response()->json([
             'message' => "Se han retrasado 30 minutos todos los turnos de la cancha {$turnoBase->cancha} desde las {$turnoBase->hora}",
@@ -97,28 +115,60 @@ class TurnoAdminController extends Controller
     {
         // 1. Buscamos el turno base
         $turnoBase = Turno::findOrFail($id);
-        
+
+        // No se puede adelantar un turno que ya está en su límite de adelanto
+        if ($turnoBase->ajuste_minutos <= -self::AJUSTE_MAXIMO_MINUTOS) {
+            return response()->json([
+                'error' => 'Este turno ya fue adelantado 30 minutos. Volvé a su horario original antes de adelantarlo de nuevo.',
+            ], 422);
+        }
+
         // 2. Buscamos todos los turnos del mismo día, cancha y horario igual o posterior
         $turnosAfectados = Turno::where('fecha', $turnoBase->fecha)
-            ->where('cancha', $turnoBase->cancha) 
+            ->where('cancha', $turnoBase->cancha)
             ->where('hora', '>=', $turnoBase->hora)
             ->orderBy('hora', 'asc')
             ->get();
 
-        // 3. Iteramos y restamos los 30 minutos
+        // Si algún turno de la cascada ya está en su límite, abortamos antes de tocar nada
         foreach ($turnosAfectados as $turno) {
-            $nuevaHora = Carbon::parse($turno->hora)
-                ->subMinutes(30) // <--- Aquí usamos subMinutes para volver atrás
-                ->format('H:i:s');
-
-            $turno->update([
-                'hora' => $nuevaHora,
-                'retrasado' => false
-            ]);
+            if ($turno->ajuste_minutos <= -self::AJUSTE_MAXIMO_MINUTOS) {
+                return response()->json([
+                    'error' => "No se puede adelantar: el turno de las {$turno->hora} ya está adelantado al máximo permitido.",
+                ], 422);
+            }
         }
 
+        // Al adelantar el turno base se acerca al turno anterior: validamos que no se solapen
+        $turnoAnterior = Turno::where('fecha', $turnoBase->fecha)
+            ->where('cancha', $turnoBase->cancha)
+            ->where('hora', '<', $turnoBase->hora)
+            ->orderBy('hora', 'desc')
+            ->first();
+
+        if ($turnoAnterior) {
+            $nuevaHoraBase = Carbon::parse($turnoBase->hora)->subMinutes(30);
+            $finTurnoAnterior = Carbon::parse($turnoAnterior->hora)->addMinutes(self::DURACION_TURNO_MINUTOS);
+
+            if ($nuevaHoraBase->lt($finTurnoAnterior)) {
+                return response()->json([
+                    'error' => "No se puede adelantar: se solaparía con el turno de las {$turnoAnterior->hora}.",
+                ], 422);
+            }
+        }
+
+        // 3. Restamos los 30 minutos a todos los turnos afectados dentro de una transacción
+        DB::transaction(function () use ($turnosAfectados) {
+            foreach ($turnosAfectados as $turno) {
+                $turno->update([
+                    'hora' => Carbon::parse($turno->hora)->subMinutes(30)->format('H:i:s'),
+                    'ajuste_minutos' => $turno->ajuste_minutos - 30,
+                ]);
+            }
+        });
+
         return response()->json([
-            'message' => "Se han adelantado 30 minutos (corrección) los turnos de la cancha {$turnoBase->cancha} desde las {$turnoBase->hora}",
+            'message' => "Se han adelantado 30 minutos los turnos de la cancha {$turnoBase->cancha} desde las {$turnoBase->hora}",
             'turnos_actualizados' => $turnosAfectados->count()
         ], 200);
     }
