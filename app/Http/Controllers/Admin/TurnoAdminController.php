@@ -13,8 +13,6 @@ class TurnoAdminController extends Controller
 {
     private const AJUSTE_MAXIMO_MINUTOS = 30;
     private const ESTADO_RESERVADO = 'reservado';
-    // Separación mínima que siempre debe quedar entre dos turnos consecutivos de la misma cancha
-    private const DURACION_TURNO_MINUTOS = 90;
 
     // Listar todos los turnos
     public function index() {
@@ -87,48 +85,34 @@ class TurnoAdminController extends Controller
             ->orderBy('hora', 'asc') // Los procesamos en orden cronológico
             ->get();
 
-        $totalTurnos = $turnosAfectados->count();
-
-        // Buscamos el primer turno que, bajo ninguna circunstancia, puede moverse
-        // (está reservado o ya está en su límite de ajuste).
-        $limiteMovers = $totalTurnos;
-        for ($i = 1; $i < $totalTurnos; $i++) {
-            $turno = $turnosAfectados[$i];
-            if ($turno->estado === self::ESTADO_RESERVADO || $turno->ajuste_minutos >= self::AJUSTE_MAXIMO_MINUTOS) {
-                $limiteMovers = $i;
-                break;
-            }
-        }
-
-        // El último turno que sí se movería debe dejar al menos 90 minutos respecto
-        // al turno que queda fijo justo después. Si no alcanza, ese turno tampoco se
-        // mueve, y repetimos la verificación con el anterior (así nunca se generan
-        // turnos a menos de 90 minutos entre sí).
-        while ($limiteMovers > 0 && $limiteMovers < $totalTurnos) {
-            $ultimoMover = $turnosAfectados[$limiteMovers - 1];
-            $turnoFijo = $turnosAfectados[$limiteMovers];
-
-            $nuevaHoraUltimoMover = Carbon::parse($ultimoMover->hora)->addMinutes(30);
-            $gapMinutos = (Carbon::parse($turnoFijo->hora)->timestamp - $nuevaHoraUltimoMover->timestamp) / 60;
-
-            if ($gapMinutos >= self::DURACION_TURNO_MINUTOS) {
-                break;
-            }
-
-            $limiteMovers--;
-        }
-
-        if ($limiteMovers === 0) {
+        // Si el turno inmediatamente posterior al elegido está reservado, no se puede
+        // iniciar el retraso (el turno elegido quedaría pegado a uno ocupado)
+        $siguienteDeBase = $turnosAfectados[1] ?? null;
+        if ($siguienteDeBase && $siguienteDeBase->estado === self::ESTADO_RESERVADO) {
             return response()->json([
-                'error' => 'No se puede retrasar: no queda espacio suficiente (mínimo 1 hora y 30 minutos) antes del próximo turno.',
+                'error' => "No se puede retrasar: el turno de las {$siguienteDeBase->hora} está reservado.",
             ], 422);
         }
 
-        // 3. Sumamos los 30 minutos solo a los turnos que pudieron validarse ($limiteMovers primeros)
+        // 3. Sumamos los 30 minutos en cascada. Un turno reservado (que no sea el elegido)
+        //    nunca se mueve: frena la cascada ahí para no pisarlo ni acercarse de más.
         $actualizados = 0;
-        DB::transaction(function () use ($turnosAfectados, $limiteMovers, &$actualizados) {
-            for ($i = 0; $i < $limiteMovers; $i++) {
-                $turno = $turnosAfectados[$i];
+        $detenidoEn = null;
+
+        DB::transaction(function () use ($turnosAfectados, &$actualizados, &$detenidoEn) {
+            foreach ($turnosAfectados as $i => $turno) {
+                if ($i > 0) {
+                    $siguiente = $turnosAfectados[$i + 1] ?? null;
+                    $sinEspacio = $turno->estado === self::ESTADO_RESERVADO
+                        || $turno->ajuste_minutos >= self::AJUSTE_MAXIMO_MINUTOS
+                        || ($siguiente && $siguiente->estado === self::ESTADO_RESERVADO);
+
+                    if ($sinEspacio) {
+                        $detenidoEn = $turno->hora;
+                        break;
+                    }
+                }
+
                 $turno->update([
                     'hora' => Carbon::parse($turno->hora)->addMinutes(30)->format('H:i:s'),
                     'ajuste_minutos' => $turno->ajuste_minutos + 30,
@@ -138,9 +122,8 @@ class TurnoAdminController extends Controller
         });
 
         $mensaje = "Se retrasaron 30 minutos {$actualizados} turno(s) de la cancha {$turnoBase->cancha} desde las {$turnoBase->hora}.";
-        if ($limiteMovers < $totalTurnos) {
-            $turnoFijo = $turnosAfectados[$limiteMovers];
-            $mensaje .= " El ajuste en cascada se detuvo antes del turno de las {$turnoFijo->hora} porque no queda espacio suficiente.";
+        if ($detenidoEn !== null) {
+            $mensaje .= " El ajuste en cascada se detuvo antes del turno de las {$detenidoEn} porque interfiere con un turno reservado.";
         }
 
         return response()->json([
@@ -169,25 +152,14 @@ class TurnoAdminController extends Controller
             ->orderBy('hora', 'desc')
             ->first();
 
-        $nuevaHoraBase = Carbon::parse($turnoBase->hora)->subMinutes(30);
-
-        if ($turnoAnterior) {
-            if ($turnoAnterior->estado === self::ESTADO_RESERVADO) {
-                return response()->json([
-                    'error' => "No se puede adelantar: el turno de las {$turnoAnterior->hora} está reservado.",
-                ], 422);
-            }
-
-            // Tampoco puede quedar a menos de 90 minutos del turno anterior, esté o no reservado
-            $gapMinutos = ($nuevaHoraBase->timestamp - Carbon::parse($turnoAnterior->hora)->timestamp) / 60;
-            if ($gapMinutos < self::DURACION_TURNO_MINUTOS) {
-                return response()->json([
-                    'error' => "No se puede adelantar: quedaría a menos de 1 hora y 30 minutos del turno de las {$turnoAnterior->hora}.",
-                ], 422);
-            }
+        if ($turnoAnterior && $turnoAnterior->estado === self::ESTADO_RESERVADO) {
+            return response()->json([
+                'error' => "No se puede adelantar: el turno de las {$turnoAnterior->hora} está reservado.",
+            ], 422);
         }
 
         // No se puede adelantar un turno a un horario que ya pasó
+        $nuevaHoraBase = Carbon::parse($turnoBase->hora)->subMinutes(30);
         $esHoy = Carbon::parse($turnoBase->fecha)->isSameDay(now());
         if ($esHoy && $nuevaHoraBase->lte(now())) {
             return response()->json([
