@@ -28,5 +28,10 @@ RUN composer install --no-dev --optimize-autoloader
 # 6. Permisos para carpetas de Storage y Cache
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# 7. Exponer el puerto 80
-EXPOSE 80
+# 7. Script de arranque: Cloud Run asigna el puerto por la variable $PORT en runtime,
+# Apache tiene que escuchar ahí (no en el 80 fijo que usa Render)
+COPY docker/start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
+
+EXPOSE 8080
+CMD ["start.sh"]
