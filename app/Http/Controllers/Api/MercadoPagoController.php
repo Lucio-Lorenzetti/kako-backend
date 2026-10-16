@@ -55,6 +55,9 @@ class MercadoPagoController extends Controller
                 throw new \Exception("APP_URL o FRONTEND_URL no configuradas.");
             }
 
+            $backendUrl = rtrim($backendUrl, '/');
+            $frontendUrl = rtrim($frontendUrl, '/');
+
             $requestBody = [
                 'items' => [
                     [
@@ -64,11 +67,11 @@ class MercadoPagoController extends Controller
                     ]
                 ],
                 'back_urls' => [
-                    'success' => 'https://kakopadel.vercel.app/pago/success',
-                    'failure' => 'https://kakopadel.vercel.app/failure',
-                    'pending' => 'https://kakopadel.vercel.app/pending',
+                    'success' => "{$frontendUrl}/pago/success",
+                    'failure' => "{$frontendUrl}/failure",
+                    'pending' => "{$frontendUrl}/pending",
                 ],
-                'notification_url' => 'https://kako-backend.onrender.com/api/mercadopago/webhook',
+                'notification_url' => "{$backendUrl}/api/mercadopago/webhook",
 
                 'external_reference' => json_encode([
                     'turno_id' => $request->turno_id,
