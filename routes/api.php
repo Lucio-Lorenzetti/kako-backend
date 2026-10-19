@@ -54,6 +54,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\IsAdmin::class])
         Route::get('precios', [TurnoAdminController::class, 'precios']);
         Route::put('/turnos/precio/{cancha}', [TurnoAdminController::class, 'updatePrecioPorCancha']);
         Route::put('reservas/{id}/liberar', [ReservaAdminController::class, 'liberar']);         
+        Route::get('estadisticas/uso-sistema', [\App\Http\Controllers\Admin\EstadisticasController::class, 'usoSistema']);
         Route::get('usuarios', [UserController::class, 'index']);
         Route::get('usuarios/{id}', [UserController::class, 'show']);
         Route::put('usuarios/{id}', [UserController::class, 'update']);
