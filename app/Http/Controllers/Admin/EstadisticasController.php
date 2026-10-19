@@ -17,17 +17,15 @@ class EstadisticasController extends Controller
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
-        $reservasClienteTotal = Reserva::count();
-
-        $turnosReservados = Turno::where('estado', 'reservado');
-
-        $turnosReservadosClienteActual = (clone $turnosReservados)->whereHas('reservas')->count();
-        $turnosReservadosManualActual = (clone $turnosReservados)->whereDoesntHave('reservas')->count();
-
         return response()->json([
-            'reservas_cliente_total' => $reservasClienteTotal,
-            'turnos_reservados_cliente_actual' => $turnosReservadosClienteActual,
-            'turnos_reservados_manual_actual' => $turnosReservadosManualActual,
+            // Total histórico de reservas hechas por clientes (pago real),
+            // sin importar si el turno ya venció o cambió de estado.
+            'reservas_cliente_total' => Reserva::count(),
+
+            // Total histórico de turnos que un admin marcó "reservado" a mano
+            // desde el panel. Queda guardado para siempre en el turno, el
+            // cron que vence turnos viejos no borra esta marca.
+            'turnos_reservados_manual_total' => Turno::where('reservado_manualmente', true)->count(),
         ]);
     }
 }

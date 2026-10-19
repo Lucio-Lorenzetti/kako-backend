@@ -37,8 +37,13 @@ class TurnoAdminController extends Controller
             'estado' => 'in:disponible,reservado,inactivo'
         ]);
 
-        $turno = Turno::create($request->all());
-        
+        $data = $request->all();
+        if (($data['estado'] ?? null) === self::ESTADO_RESERVADO) {
+            $data['reservado_manualmente'] = true;
+        }
+
+        $turno = Turno::create($data);
+
         return response()->json([
             'message' => 'Turno creado correctamente',
             'turno' => $turno
@@ -55,7 +60,15 @@ class TurnoAdminController extends Controller
         ]);
 
         $turno = Turno::findOrFail($id);
-        $turno->update($request->all());
+
+        $data = $request->all();
+        // Marca permanente de que este turno lo reservó un admin a mano
+        // (no por pago real); no se resetea aunque después cambie de estado.
+        if (($data['estado'] ?? null) === self::ESTADO_RESERVADO) {
+            $data['reservado_manualmente'] = true;
+        }
+
+        $turno->update($data);
 
         return response()->json([
             'message' => 'Turno actualizado correctamente',

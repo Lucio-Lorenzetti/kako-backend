@@ -14,9 +14,10 @@ class Turno extends Model
         'hora',
         'ajuste_minutos',
         'estado',
+        'reservado_manualmente',
         'precio',
-        'sena',   
-        'cancha' 
+        'sena',
+        'cancha'
     ];
 
     public function reservas()
